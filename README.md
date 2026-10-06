@@ -4,7 +4,7 @@
 
 A Flutter-based private tracker client built with Material Design 3. PT Mate supports torrent browsing, search, and download management across multiple PT site types.
 
-This fork removes community promotion, automatic update checks, device telemetry and the statistics backend. Releases are accessed manually from this repository. See [fork notes](docs/FORK_NOTES.md).
+This fork removes promotion, upstream update services, device telemetry and the statistics backend. The independent Android app **PT Mate Dev** checks and downloads updates only from [uZIDADADA/pt_mate Releases](https://github.com/uZIDADADA/pt_mate/releases). Each push to `dev` runs tests and publishes a signed APK. See [fork notes and migration steps](docs/FORK_NOTES.md).
 
 ## Features
 
@@ -69,7 +69,7 @@ PT Mate now supports **Cookie Cloud** integration, allowing you to synchronize l
 > 5. **Operating System Constraints & Plaintext Storage Risk**
 >    - While the application utilizes platform secure storage pipelines (Keychain/KeyStore), on certain Linux distributions or environments lacking a proper keyring service, the app may fall back to **storing Cookie Cloud credentials in plaintext** within configuration files.
 > 6. **Backup Exports & WebDAV Sync Exposures**
->    - The exported backup files and the cloud-synced WebDAV backup payloads **contain the full, unencrypted Cookie Cloud configuration**.
+>    - New local and WebDAV exports use password encryption (AES-256-GCM). The password requires at least 12 characters and is never saved or uploaded. Legacy plaintext backups can still be imported manually; startup never automatically restores WebDAV data.
 >    - **Security Recommendation**: Store exported backup JSON files securely. Ensure your WebDAV connection **strictly uses the HTTPS protocol** (never HTTP) to prevent man-in-the-middle sniffing of backup data.
 > 7. **Runtime Memory Snooping Risk**
 >    - At runtime, the application necessarily holds plaintext cookies and credentials in system memory. If your device is compromised by malware, spyware, or processes with root/jailbreak privileges, they could potentially read this sensitive information directly from process memory.

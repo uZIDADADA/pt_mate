@@ -1,3 +1,5 @@
+import '../network/request_security.dart';
+
 import 'package:dio/dio.dart';
 import 'package:logger/logger.dart';
 
@@ -28,8 +30,8 @@ class Unit3dAdapter extends SiteAdapter {
       ),
     );
     _dio.options.baseUrl = _siteConfig.baseUrl;
-    _dio.options.headers['User-Agent'] =
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36';
+    RequestSecurity.guard(_dio, _siteConfig.baseUrl);
+    _dio.options.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36';
     _dio.options.headers['Accept'] = 'application/json';
 
     // 设置 API 授权

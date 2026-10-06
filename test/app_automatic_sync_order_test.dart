@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pt_mate/app.dart';
@@ -31,32 +29,18 @@ void main() {
   });
 
   test(
-    'WebDAV restore completes before startup Cookie Cloud sync begins',
+    'startup never restores a remote backup over local configuration',
     () async {
       final state = AppState();
-      final webDavStarted = Completer<void>();
-      final releaseWebDav = Completer<void>();
-      final events = <String>[];
+      var restores = 0;
+      var cookieSyncs = 0;
       state.overrideAutomaticSyncChecksForTest(
-        webDav: () async {
-          events.add('webdav-start');
-          webDavStarted.complete();
-          await releaseWebDav.future;
-          events.add('webdav-complete');
-        },
-        cookieCloud: () async {
-          events.add('cookie-cloud');
-        },
+        webDav: () async => restores++,
+        cookieCloud: () async => cookieSyncs++,
       );
-
-      final startup = state.runAutomaticSyncSequenceForTest();
-      await webDavStarted.future.timeout(const Duration(seconds: 1));
-      expect(events, ['webdav-start']);
-
-      releaseWebDav.complete();
-      await startup.timeout(const Duration(seconds: 1));
-
-      expect(events, ['webdav-start', 'webdav-complete', 'cookie-cloud']);
+      await state.runAutomaticSyncSequenceForTest();
+      expect(restores, 0);
+      expect(cookieSyncs, 1);
       state.dispose();
     },
   );

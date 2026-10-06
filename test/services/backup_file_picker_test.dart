@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pt_mate/services/backup_service.dart';
+import 'package:pt_mate/services/backup_encryption.dart';
 import 'package:pt_mate/services/storage/storage_service.dart';
 import 'package:pt_mate/utils/file_picker_utils.dart';
 
@@ -76,6 +77,33 @@ void main() {
 
     expect(backup!.version, BackupVersion.current);
     expect(backup.data['name'], '中文备份');
+  });
+
+  test('encrypted document imports only with its password and cancellation changes nothing', () async {
+    final content = jsonEncode({
+      'version': BackupVersion.current,
+      'timestamp': '2026-09-30T12:00:00.000',
+      'appVersion': '2.29.3',
+      'data': {'name': '中文备份'},
+    });
+    picker.selectedFile = _DocumentFile(
+      await BackupEncryption.encrypt(content, 'synthetic-password'),
+    );
+    final unlocked = BackupService(
+      StorageService.instance,
+      passwordProvider: (_) async => 'synthetic-password',
+    );
+    expect((await unlocked.importBackup())!.data['name'], '中文备份');
+    final cancelled = BackupService(
+      StorageService.instance,
+      passwordProvider: (_) async => null,
+    );
+    expect(await cancelled.importBackup(), isNull);
+    final wrong = BackupService(
+      StorageService.instance,
+      passwordProvider: (_) async => 'wrong-password',
+    );
+    await expectLater(wrong.importBackup(), throwsA(isA<BackupException>()));
   });
 
   test('returns null when the user cancels backup selection', () async {

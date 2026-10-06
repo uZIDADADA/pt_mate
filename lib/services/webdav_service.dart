@@ -1,3 +1,5 @@
+import 'network/request_security.dart';
+
 import 'dart:convert';
 
 import 'package:webdav_client/webdav_client.dart' as webdav;
@@ -149,12 +151,14 @@ class WebDAVService {
 
     if (_client != null) return _client;
 
+    RequestSecurity.requireSafeTransport(config.serverUrl);
     _currentConfig = config;
     _client = webdav.newClient(
       config.serverUrl,
       user: config.username,
       password: password,
     );
+    RequestSecurity.guard(_client!.c, config.serverUrl);
     _client!.setConnectTimeout(30000); // 30秒超时
     _client!.setSendTimeout(30000);
     _client!.setReceiveTimeout(30000);
@@ -180,11 +184,13 @@ class WebDAVService {
         return WebDAVTestResult(success: false, errorMessage: '密码不能为空');
       }
 
+      RequestSecurity.requireSafeTransport(testConfig.serverUrl);
       final client = webdav.newClient(
         testConfig.serverUrl,
         user: testConfig.username,
         password: testPassword,
       );
+      RequestSecurity.guard(client.c, testConfig.serverUrl);
       client.setConnectTimeout(30000); // 30秒超时
       client.setSendTimeout(30000);
       client.setReceiveTimeout(30000);

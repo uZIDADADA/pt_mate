@@ -35,6 +35,23 @@ class MainActivity : FlutterActivity() {
         secureStorageTestBootstrapFailureCode = bootstrapSecureStorageTestProfileIfNeeded()
         super.configureFlutterEngine(flutterEngine)
 
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "pt_mate/fork_update")
+            .setMethodCallHandler { call, result ->
+                if (call.method != "install") {
+                    result.notImplemented()
+                } else {
+                    try {
+                        val path = call.argument<String>("path") ?: error("Missing path")
+                        val checksum = call.argument<String>("sha256") ?: error("Missing checksum")
+                        val build = call.argument<Number>("buildNumber")?.toLong() ?: error("Missing build")
+                        result.success(ForkUpdateInstaller.install(this, path, checksum, build))
+                    } catch (_: Exception) {
+                        result.error("update_rejected", "Update validation or installation failed", null)
+                    }
+                }
+            }
+
+
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             LOCAL_DOWNLOADS_CHANNEL,

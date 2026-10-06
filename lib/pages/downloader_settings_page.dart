@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../services/storage/storage_service.dart';
@@ -9,6 +10,7 @@ import '../widgets/qb_speed_indicator.dart';
 import '../widgets/responsive_layout.dart';
 import '../utils/downloader_utils.dart';
 import '../utils/format.dart';
+
 import 'package:pt_mate/utils/notification_helper.dart';
 
 class DownloaderSettingsPage extends StatefulWidget {
@@ -409,7 +411,6 @@ class _DownloaderEditorDialogState extends State<_DownloaderEditorDialog> {
   String? _testMsg;
   bool? _testOk;
   bool _useLocalRelay = false; // 本地中转选项状态
-  bool _allowSelfSignedCert = false; // 允许自签名证书选项状态
   DownloaderType _selectedType = DownloaderType.qbittorrent; // 选择的下载器类型
 
   @override
@@ -419,7 +420,6 @@ class _DownloaderEditorDialogState extends State<_DownloaderEditorDialog> {
     if (e != null) {
       _nameCtrl.text = e.name;
       _selectedType = e.type;
-      _allowSelfSignedCert = e.allowSelfSignedCert;
 
       if (e is QbittorrentConfig) {
         _hostCtrl.text = e.host;
@@ -477,7 +477,7 @@ class _DownloaderEditorDialogState extends State<_DownloaderEditorDialog> {
         'port': port,
         'username': user,
         'useLocalRelay': _useLocalRelay, // 包含本地中转选项
-        'allowSelfSignedCert': _allowSelfSignedCert, // 包含自签名证书选项
+        'allowSelfSignedCert': false, // 包含自签名证书选项
       },
     };
 
@@ -494,9 +494,8 @@ class _DownloaderEditorDialogState extends State<_DownloaderEditorDialog> {
       Navigator.of(context).pop(_DownloaderEditorResult(cfg, savedPassword));
     } else {
       // 无需异步操作，直接返回结果
-      Navigator.of(
-        context,
-      ).pop(_DownloaderEditorResult(cfg, pwd.isEmpty ? null : pwd));
+      Navigator.of(context)
+          .pop(_DownloaderEditorResult(cfg, pwd.isEmpty ? null : pwd));
     }
   }
 
@@ -554,7 +553,7 @@ class _DownloaderEditorDialogState extends State<_DownloaderEditorDialog> {
           'port': port,
           'username': user,
           'useLocalRelay': _useLocalRelay, // 包含本地中转选项
-          'allowSelfSignedCert': _allowSelfSignedCert, // 包含自签名证书选项
+          'allowSelfSignedCert': false, // 包含自签名证书选项
         },
       };
 
@@ -739,55 +738,6 @@ class _DownloaderEditorDialogState extends State<_DownloaderEditorDialog> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // 自签名证书选项
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text(
-                                      '允许自签名证书',
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.titleSmall,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Icon(
-                                      Icons.warning_amber_rounded,
-                                      size: 18,
-                                      color: Colors.orange.shade700,
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '警告：启用后将禁用 SSL/TLS 证书验证，可能导致中间人攻击风险。仅在使用自签名证书时启用。',
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(color: Colors.orange.shade700),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Switch(
-                            value: _allowSelfSignedCert,
-                            onChanged: (value) {
-                              setState(() {
-                                _allowSelfSignedCert = value;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
                     if (_testMsg != null) ...[
                       Builder(
                         builder: (context) {
@@ -839,12 +789,12 @@ class _DownloaderEditorDialogState extends State<_DownloaderEditorDialog> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: _testOk == true
-                                      ? Theme.of(
-                                          context,
-                                        ).colorScheme.onPrimaryContainer
-                                      : Theme.of(
-                                          context,
-                                        ).colorScheme.onErrorContainer,
+                                      ? Theme.of(context)
+                                            .colorScheme
+                                            .onPrimaryContainer
+                                      : Theme.of(context)
+                                            .colorScheme
+                                            .onErrorContainer,
                                 ),
                               ),
                             ),

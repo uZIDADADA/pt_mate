@@ -1,3 +1,5 @@
+import '../widgets/backup_password_dialog.dart';
+
 import 'package:flutter/material.dart';
 
 import '../services/backup_service.dart';
@@ -34,7 +36,11 @@ class LegacySecureStorageMigrationPage extends StatefulWidget {
 class _LegacySecureStorageMigrationPageState
     extends State<LegacySecureStorageMigrationPage> {
   final StorageService _storage = StorageService.instance;
-  late final BackupService _backupService = BackupService(_storage);
+  late final BackupService _backupService = BackupService(
+    _storage,
+    passwordProvider: (encrypting) =>
+        requestBackupPassword(context, encrypting),
+  );
   LegacyMigrationBackupExport? _exportedBackup;
   LegacyAndroidMigrationTarget? _target;
   bool _busy = false;
@@ -140,7 +146,7 @@ class _LegacySecureStorageMigrationPageState
           builder: (dialogContext) => AlertDialog(
             title: const Text('迁移完成'),
             content: Text(
-              '数据已恢复成功。备份文件 ${exported.path} 包含 Cookie、API Key 和密码等明文敏感信息；'
+              '数据已恢复成功。备份文件 ${exported.path} 包含 Cookie、API Key 和密码等敏感信息（已加密）；'
               '确认应用可正常使用后，请从设备中删除该文件。',
             ),
             actions: [

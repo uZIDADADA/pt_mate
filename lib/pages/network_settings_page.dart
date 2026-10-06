@@ -1,8 +1,10 @@
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:pt_mate/utils/notification_helper.dart';
+
 import '../services/storage/storage_service.dart';
 import '../services/network/proxy_service.dart';
 
@@ -98,10 +100,12 @@ class _NetworkSettingsPageState extends State<NetworkSettingsPage> {
     });
 
     try {
-      final testDio = Dio(BaseOptions(
-        connectTimeout: const Duration(seconds: 5),
-        receiveTimeout: const Duration(seconds: 5),
-      ));
+      final testDio = Dio(
+        BaseOptions(
+          connectTimeout: const Duration(seconds: 5),
+          receiveTimeout: const Duration(seconds: 5),
+        ),
+      );
 
       final testUsername = _usernameController.text.trim();
       final testPassword = _passwordController.text;
@@ -123,7 +127,6 @@ class _NetworkSettingsPageState extends State<NetworkSettingsPage> {
               return Future.value(true);
             };
           }
-          client.badCertificateCallback = (cert, host, port) => true;
           return client;
         },
       );
@@ -139,7 +142,9 @@ class _NetworkSettingsPageState extends State<NetworkSettingsPage> {
       } else {
         if (mounted) {
           NotificationHelper.showError(
-              context, '连接测试异常：HTTP 状态码 ${response.statusCode}');
+            context,
+            '连接测试异常：HTTP 状态码 ${response.statusCode}',
+          );
         }
       }
     } catch (e) {
@@ -170,7 +175,7 @@ class _NetworkSettingsPageState extends State<NetworkSettingsPage> {
       final storage = StorageService.instance;
       await storage.saveProxyEnabled(_proxyEnabled);
       await storage.saveProxyHost(_hostController.text.trim());
-      
+
       final portVal = int.tryParse(_portController.text.trim()) ?? 7890;
       await storage.saveProxyPort(portVal);
       await storage.saveProxyUsername(_usernameController.text.trim());
@@ -218,16 +223,15 @@ class _NetworkSettingsPageState extends State<NetworkSettingsPage> {
                 children: [
                   Text(
                     '网络代理配置说明',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '配置全局网络代理可帮助您解决部分 PT 站点因地区或运营商网络限制导致的直接访问超时或失败问题。仅支持标准 HTTP/HTTPS 代理。',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
@@ -248,9 +252,7 @@ class _NetworkSettingsPageState extends State<NetworkSettingsPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('网络代理设置'),
-      ),
+      appBar: AppBar(title: const Text('网络代理设置')),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -285,9 +287,8 @@ class _NetworkSettingsPageState extends State<NetworkSettingsPage> {
                     children: [
                       Text(
                         '代理服务器设置',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 16),
                       Row(
@@ -398,17 +399,13 @@ class _NetworkSettingsPageState extends State<NetworkSettingsPage> {
                           children: [
                             Text(
                               '自定义绕过白名单 (每行一条规则)',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
+                              style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 8),
                             Text(
                               '默认已绕过 localhost, 127.0.0.1 极其余标准局域网 IP段。您可在下方输入自定义绕过域名或 IP (支持通配符 "*")：',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
+                              style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
                                     color: Theme.of(context)
                                         .colorScheme
@@ -420,7 +417,8 @@ class _NetworkSettingsPageState extends State<NetworkSettingsPage> {
                               controller: _bypassRulesController,
                               maxLines: 4,
                               decoration: const InputDecoration(
-                                hintText: '例如:\n*.local\nmyvps-tracker.com\n10.20.*',
+                                hintText:
+                                    '例如:\n*.local\nmyvps-tracker.com\n10.20.*',
                                 border: OutlineInputBorder(),
                               ),
                             ),
@@ -443,9 +441,7 @@ class _NetworkSettingsPageState extends State<NetworkSettingsPage> {
                           ? const SizedBox(
                               width: 18,
                               height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.network_check),
                       label: const Text('测试连接'),

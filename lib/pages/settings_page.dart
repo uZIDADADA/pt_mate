@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:flutter/services.dart';
 
 import '../services/storage/storage_service.dart';
 import '../models/app_models.dart';
@@ -18,7 +17,6 @@ import 'aggregate_search_settings_page.dart';
 import 'downloader_settings_page.dart';
 import 'network_settings_page.dart';
 import 'cookie_cloud_page.dart';
-import '../services/debug/web_debug_service.dart';
 
 import 'package:pt_mate/utils/notification_helper.dart';
 
@@ -341,8 +339,6 @@ class _SettingsBody extends StatelessWidget {
               _ExportLogsTile(),
               Divider(height: 1),
               _ClearLogsTile(),
-              Divider(height: 1),
-              _WebDebugToggleTile(),
             ],
           ),
         ),
@@ -360,94 +356,6 @@ class _SettingsBody extends StatelessWidget {
       case AppThemeMode.dark:
         return '深色';
     }
-  }
-}
-
-class _WebDebugToggleTile extends StatefulWidget {
-  const _WebDebugToggleTile();
-
-  @override
-  State<_WebDebugToggleTile> createState() => _WebDebugToggleTileState();
-}
-
-class _WebDebugToggleTileState extends State<_WebDebugToggleTile> {
-  bool _enabled = false;
-  List<String> _serviceUrls = [];
-
-  Future<void> _toggle(bool value) async {
-    setState(() {
-      _enabled = value;
-    });
-    if (value) {
-      if (kIsWeb) {
-        NotificationHelper.showError(context, '当前为 Web 构建，无法启动本地调试服务');
-        setState(() {
-          _enabled = false;
-        });
-        return;
-      }
-      try {
-        final ok = await WebDebugService.instance.start();
-        if (!mounted) return;
-        _serviceUrls = WebDebugService.instance.hostUrls;
-        setState(() {});
-        NotificationHelper.showInfo(
-          context,
-          ok ? 'Web 调试服务已启动' : 'Web 调试服务启动失败',
-        );
-      } catch (e) {
-        NotificationHelper.showError(context, '启动失败：$e');
-        setState(() {
-          _enabled = false;
-        });
-      }
-    } else {
-      await WebDebugService.instance.stop();
-      if (!mounted) return;
-      _serviceUrls = [];
-      setState(() {});
-      NotificationHelper.showError(context, 'Web 调试服务已停止');
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SwitchListTile(
-      secondary: const Icon(Icons.bug_report),
-      title: const Text('Web 调试'),
-      subtitle: WebDebugService.instance.isRunning
-          ? Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('运行中，点击复制地址：'),
-                const SizedBox(height: 4),
-                ...(_serviceUrls.isNotEmpty
-                        ? _serviceUrls
-                        : WebDebugService.instance.hostUrls)
-                    .map(
-                      (url) => InkWell(
-                        onTap: () {
-                          Clipboard.setData(ClipboardData(text: url));
-                          NotificationHelper.showInfo(context, '已复制到剪贴板');
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 2),
-                          child: Text(
-                            url,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-              ],
-            )
-          : const Text('启用后在局域网使用浏览器访问来调试网站配置'),
-      value: _enabled && WebDebugService.instance.isRunning,
-      onChanged: _toggle,
-    );
   }
 }
 

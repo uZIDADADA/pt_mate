@@ -185,7 +185,7 @@ void main() {
         appState.waitForAutomaticSyncForTest(),
       );
       final initialConfigVersion = appState.configVersion;
-      expect((webDavRuns, cookieCloudRuns, probeReads), (1, 1, 1));
+      expect((webDavRuns, cookieCloudRuns, probeReads), (0, 1, 1));
 
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
       await tester.pump();
@@ -195,7 +195,7 @@ void main() {
         expect(find.text('暂时无法读取安全存储'), findsNothing);
       }
 
-      expect((webDavRuns, cookieCloudRuns, probeReads), (1, 2, 2));
+      expect((webDavRuns, cookieCloudRuns, probeReads), (0, 2, 2));
       expect(appState.configVersion, initialConfigVersion);
       expect(find.byType(ServerSettingsPage), findsOneWidget);
     },

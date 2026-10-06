@@ -1,3 +1,5 @@
+import '../widgets/backup_password_dialog.dart';
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -44,7 +46,11 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
   @override
   void initState() {
     super.initState();
-    _backupService = BackupService(StorageService.instance);
+    _backupService = BackupService(
+      StorageService.instance,
+      passwordProvider: (encrypting) =>
+          requestBackupPassword(context, encrypting),
+    );
     _webdavService = WebDAVService.instance;
     _loadWebDAVConfigs();
   }
@@ -234,7 +240,7 @@ class _BackupRestorePageState extends State<BackupRestorePage> {
         title: const Text('备份恢复成功'),
         content: Text(
           '备份已成功恢复！\n\n'
-          '${widget.isLegacySecureStorageRecovery ? '迁移备份包含 Cookie、API Key 和密码等明文敏感信息；确认应用可正常使用后，请从设备中删除该备份文件。\n\n' : ''}'
+          '${widget.isLegacySecureStorageRecovery ? '迁移备份包含 Cookie、API Key 和密码等敏感信息；确认应用可正常使用后，请从设备中删除该备份文件。\n\n' : ''}'
           '为确保所有数据正确生效，建议您重启应用。\n\n'
           '您可以选择立即重启或稍后手动重启应用。',
         ),

@@ -1,3 +1,5 @@
+import '../network/request_security.dart';
+
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -19,7 +21,10 @@ mixin TorrentFileDownloaderMixin {
     SiteConfig? siteConfig,
   }) async {
     List<int> result;
-    final requestUrl = url.startsWith('##') ? url.substring(2) : url;
+    final rawUrl = url.startsWith('##') ? url.substring(2) : url;
+    final requestUrl = siteConfig == null
+        ? rawUrl
+        : Uri.parse(siteConfig.baseUrl).resolve(rawUrl).toString();
 
     try {
       final headers = <String, dynamic>{};
@@ -27,15 +32,24 @@ mixin TorrentFileDownloaderMixin {
         headers['Cookie'] = siteConfig!.cookie!;
       }
 
+      // The downloader API client may contain its own credentials/interceptors.
+      // Reuse only its transport, with an empty set of application headers.
+      final downloadDio = Dio(
+        BaseOptions(
+          connectTimeout: dio.options.connectTimeout,
+          receiveTimeout: dio.options.receiveTimeout,
+        ),
+      )..httpClientAdapter = dio.httpClientAdapter;
+      RequestSecurity.requireSafeTransport(requestUrl);
       final response = await retryOnTimeout(
-        () => dio.get<List<int>>(
+        () => downloadDio.get<List<int>>(
           requestUrl,
           options: Options(
             responseType: ResponseType.bytes,
-            followRedirects: true,
+            followRedirects: false,
             maxRedirects: 5,
             headers: headers.isEmpty ? null : headers,
-            validateStatus: (status) => status != null && status < 400,
+            validateStatus: (status) => status == 200,
           ),
         ),
       );
@@ -106,6 +120,7 @@ mixin TorrentFileDownloaderMixin {
     if (requestUri == null || siteUri == null) return false;
 
     // 避免把站点 Cookie 发送给下载链接中意外出现的第三方域名。
-    return requestUri.host.isEmpty || requestUri.host == siteUri.host;
+    return RequestSecurity.sameOrigin(requestUri, siteUri) &&
+        RequestSecurity.safeTransport(requestUri);
   }
 }

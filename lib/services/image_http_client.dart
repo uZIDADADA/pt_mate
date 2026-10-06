@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 
+import 'network/request_security.dart';
+
 class ImageHttpClient {
   ImageHttpClient._();
   static final ImageHttpClient instance = ImageHttpClient._();
@@ -10,12 +12,12 @@ class ImageHttpClient {
 
   final Dio _dio = Dio(
     BaseOptions(
+      followRedirects: false,
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 30),
       sendTimeout: const Duration(seconds: 30),
       headers: {
-        'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
         'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
         'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
         'Cache-Control': 'no-cache',
@@ -98,7 +100,7 @@ class ImageHttpClient {
 
     // 根据不同的图片域名设置不同的Referer
     String? referer;
-    if (siteBaseUrl != null && siteBaseUrl.trim().isNotEmpty) {
+    if (shouldAttachCookie && siteBaseUrl != null) {
       referer = _normalizeBaseUrl(siteBaseUrl);
     } else if (url.contains('doubanio.com')) {
       referer = 'https://www.douban.com/';
@@ -162,29 +164,11 @@ class ImageHttpClient {
         return false;
       }
 
-      if (imageHost == siteHost) {
-        return true;
-      }
-
-      if (imageHost.endsWith('.$siteHost') ||
-          siteHost.endsWith('.$imageHost')) {
-        return true;
-      }
-
-      final imageRootDomain = _rootDomain(imageHost);
-      final siteRootDomain = _rootDomain(siteHost);
-      return imageRootDomain.isNotEmpty && imageRootDomain == siteRootDomain;
+      return RequestSecurity.sameOrigin(imageUri, siteUri) &&
+          RequestSecurity.safeTransport(imageUri);
     } catch (_) {
       return false;
     }
-  }
-
-  String _rootDomain(String host) {
-    final segments = host.split('.');
-    if (segments.length < 2) {
-      return host;
-    }
-    return '${segments[segments.length - 2]}.${segments.last}';
   }
 
   /// 更新访问顺序（LRU）

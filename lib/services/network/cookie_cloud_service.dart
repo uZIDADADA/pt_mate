@@ -9,6 +9,7 @@ import 'package:encrypt/encrypt.dart' as encrypt;
 import '../../models/app_models.dart';
 import '../site_config_service.dart';
 import '../storage/storage_service.dart';
+import 'request_security.dart';
 
 class CookieCloudRemoteData {
   final Map<String, String> cookiesByHost;
@@ -86,10 +87,10 @@ class CookieCloudService {
     }
 
     final baseUrl = config.url.trim().replaceFirst(RegExp(r'/+$'), '');
-    final response = await _dio.post<dynamic>(
+    RequestSecurity.requireSafeTransport(baseUrl);
+    final response = await _dio.get<dynamic>(
       '$baseUrl/get/${Uri.encodeComponent(config.uuid.trim())}',
-      data: {'password': config.password},
-      options: Options(responseType: ResponseType.json),
+      options: Options(responseType: ResponseType.json, followRedirects: false),
     );
 
     final body = response.data;
@@ -99,9 +100,7 @@ class CookieCloudService {
 
     final encryptedText = _extractEncryptedText(body);
     if (encryptedText == null || encryptedText.isEmpty) {
-      return CookieCloudRemoteData(
-        extractCookiesByHost(Map<String, dynamic>.from(body)),
-      );
+      throw const FormatException('Cookie Cloud 必须返回加密数据；同步密码只在本机使用');
     }
 
     final plainText = decryptPayload(

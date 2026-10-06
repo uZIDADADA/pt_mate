@@ -48,7 +48,7 @@ void main() {
 
         expect(find.text('当前版本 v2.29.3+191'), findsOneWidget);
         expect(find.text('查看 Releases'), findsOneWidget);
-        expect(find.text('检查更新'), findsNothing);
+        expect(find.text('检查更新'), findsOneWidget);
         expect(find.textContaining('Telegram'), findsNothing);
         expect(find.text('JustLookAtNow'), findsNothing);
 

@@ -1,11 +1,16 @@
+import '../network/request_security.dart';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
+
 import '../../models/app_models.dart';
 
 import 'site_adapter.dart';
 import 'api_exceptions.dart';
+
 import 'package:pt_mate/services/site_config_service.dart';
+
 import '../../utils/format.dart';
 import 'nexusphp_helper.dart';
 
@@ -55,17 +60,24 @@ class NexusPHPAdapter with NexusPHPHelper implements SiteAdapter {
         receiveTimeout: const Duration(seconds: 10),
         sendTimeout: const Duration(seconds: 30),
         headers: {
-          'User-Agent':
-              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
         },
       ),
     );
 
     final swInterceptors = Stopwatch()..start();
+    _dio.options.baseUrl = _siteConfig.baseUrl;
     _dio.interceptors.clear();
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
+          try {
+            RequestSecurity.requireOrigin(options, _siteConfig.baseUrl);
+          } on DioException catch (error) {
+            handler.reject(error);
+            return;
+          }
+
           // 设置baseUrl
           if (options.baseUrl.isEmpty || options.baseUrl == '/') {
             var base = _siteConfig.baseUrl.trim();

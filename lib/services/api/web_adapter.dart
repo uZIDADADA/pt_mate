@@ -8,6 +8,7 @@ import 'package:logger/logger.dart';
 
 import '../../models/app_models.dart';
 import '../site_config_service.dart';
+import '../network/request_security.dart';
 import 'api_exceptions.dart';
 import 'html_extractor.dart';
 import 'site_adapter.dart';
@@ -47,6 +48,12 @@ class WebAdapterCore {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
+          try {
+            RequestSecurity.requireOrigin(options, config.baseUrl);
+          } on DioException catch (error) {
+            handler.reject(error);
+            return;
+          }
           final cookie = config.cookie;
           if (cookie != null && cookie.isNotEmpty) {
             options.headers['Cookie'] = cookie;
@@ -195,7 +202,7 @@ class WebAdapterCore {
     if (cookieHeader == null || cookieHeader.isEmpty) return;
 
     final baseUri = Uri.tryParse(config.baseUrl);
-    if (baseUri == null || baseUri.host.isEmpty) return;
+    if (baseUri == null || !RequestSecurity.safeTransport(baseUri)) return;
 
     final manager = CookieManager.instance();
     for (final segment in cookieHeader.split(';')) {
@@ -208,7 +215,7 @@ class WebAdapterCore {
         url: WebUri(config.baseUrl),
         name: name,
         value: value,
-        domain: baseUri.host,
+        isSecure: baseUri.scheme == 'https',
         isHttpOnly: true,
       );
     }

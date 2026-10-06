@@ -1,10 +1,10 @@
+import 'dart:io';
+
+import '../network/request_security.dart';
 // Keep the public `onConfigUpdated` named parameter stable.
 // ignore_for_file: prefer_initializing_formals
 
-import 'dart:io';
-
 import 'package:dio/dio.dart';
-import 'package:dio/io.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../models/app_models.dart';
@@ -40,6 +40,7 @@ class QbittorrentClient
     Dio? dio,
   }) : _onConfigUpdated = onConfigUpdated {
     _dio = dio ?? _createDio(config);
+    if (dio == null) RequestSecurity.guard(_dio, _baseUrl);
   }
 
   static Dio _createDio(QbittorrentConfig config) {
@@ -50,24 +51,10 @@ class QbittorrentClient
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
         },
-        followRedirects: true,
+        followRedirects: false,
         maxRedirects: 5,
       ),
     );
-    // 仅在用户明确允许时才禁用证书验证
-    if (config.allowSelfSignedCert) {
-      dio.httpClientAdapter = IOHttpClientAdapter(
-        createHttpClient: () {
-          final HttpClient client = HttpClient()
-            ..badCertificateCallback = (
-              X509Certificate cert,
-              String host,
-              int port,
-            ) => true;
-          return client;
-        },
-      );
-    }
     return dio;
   }
 

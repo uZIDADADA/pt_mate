@@ -12,6 +12,7 @@ import '../utils/file_picker_utils.dart';
 import 'downloader/downloader_config.dart';
 import 'storage/storage_service.dart';
 import 'webdav_service.dart';
+import 'backup_encryption.dart';
 
 // 备份版本管理
 class BackupVersion {
@@ -85,7 +86,28 @@ class BackupService {
   final StorageService _storageService;
   final WebDAVService _webdavService;
 
-  BackupService(this._storageService) : _webdavService = WebDAVService.instance;
+  final Future<String?> Function(bool encrypting)? passwordProvider;
+
+  BackupService(this._storageService, {this.passwordProvider})
+    : _webdavService = WebDAVService.instance;
+
+  Future<String> _encrypt(String content) async {
+    final password = await passwordProvider?.call(true);
+    if (password == null) throw const BackupCancelled();
+    return BackupEncryption.encrypt(content, password);
+  }
+
+  Future<Map<String, dynamic>> _decode(String content) async {
+    if (content.length > BackupEncryption.maxBytes * 2) {
+      throw const FormatException('备份文件过大');
+    }
+    final envelope = jsonDecode(content) as Map<String, dynamic>;
+    if (!BackupEncryption.isEncrypted(envelope)) return envelope;
+    final password = await passwordProvider?.call(false);
+    if (password == null) throw const BackupCancelled();
+    return jsonDecode(await BackupEncryption.decrypt(content, password))
+        as Map<String, dynamic>;
+  }
 
   Future<_PreparedBackupFile>
   _prepareBackupFile() => _storageService.runWithCurrentSecureStorageOperation((
@@ -95,7 +117,7 @@ class BackupService {
     final timestamp = backup.timestamp.toIso8601String().replaceAll(':', '-');
     final fileName =
         '$_backupFilePrefix${backup.version}_$timestamp$_backupFileExtension';
-    final backupContent = jsonEncode(backup.toJson());
+    final backupContent = await _encrypt(jsonEncode(backup.toJson()));
 
     return _PreparedBackupFile(
       fileName: fileName,
@@ -263,6 +285,8 @@ class BackupService {
       }
 
       return result == null ? null : filePickerLocation(result);
+    } on BackupCancelled {
+      return null;
     } on SecureStorageUnavailableException {
       rethrow;
     } catch (e) {
@@ -283,10 +307,11 @@ class BackupService {
       final timestamp = backup.timestamp.toIso8601String().replaceAll(':', '-');
       final fileName =
           '$_backupFilePrefix${backup.version}_$timestamp$_backupFileExtension';
-      final content = jsonEncode(backup.toJson());
+      final plainContent = jsonEncode(backup.toJson());
+      final content = await _encrypt(plainContent);
       // Serialize and parse once before showing the destructive migration
       // action. This rejects incomplete or structurally invalid snapshots.
-      BackupData.fromJson(jsonDecode(content) as Map<String, dynamic>);
+      BackupData.fromJson(jsonDecode(plainContent) as Map<String, dynamic>);
       onProgress?.call('请选择本地备份保存位置...');
       final path = await FilePicker.saveFile(
         dialogTitle: '迁移前导出安全备份',
@@ -300,6 +325,8 @@ class BackupService {
         path: filePickerLocation(path),
         backup: backup,
       );
+    } on BackupCancelled {
+      return null;
     } on SecureStorageUnavailableException {
       rethrow;
     } catch (error) {
@@ -318,7 +345,7 @@ class BackupService {
 
       if (result != null) {
         final content = utf8.decode(await result.readAsBytes());
-        var json = jsonDecode(content) as Map<String, dynamic>;
+        var json = await _decode(content);
 
         // 检查是否需要数据迁移
         final backupVersion = json['version'] as String? ?? '1.0.0';
@@ -328,6 +355,8 @@ class BackupService {
 
         return BackupData.fromJson(json);
       }
+      return null;
+    } on BackupCancelled {
       return null;
     } catch (e) {
       throw BackupException('导入备份失败: $e');
@@ -616,6 +645,8 @@ class BackupService {
           );
           // WebDAV上传成功，返回特殊标识表示上传到云端
           return 'WebDAV云端备份';
+        } on BackupCancelled {
+          return null;
         } on SecureStorageUnavailableException {
           rethrow;
         } catch (e) {
@@ -663,6 +694,8 @@ class BackupService {
         );
         return result == null ? null : filePickerLocation(result);
       }
+    } on BackupCancelled {
+      return null;
     } on SecureStorageUnavailableException {
       rethrow;
     } catch (e) {
@@ -683,7 +716,7 @@ class BackupService {
         return null; // 没有找到备份文件
       }
 
-      var json = jsonDecode(backupContent) as Map<String, dynamic>;
+      var json = await _decode(backupContent);
 
       // 检查是否需要数据迁移
       final backupVersion = json['version'] as String? ?? '1.0.0';
@@ -692,6 +725,8 @@ class BackupService {
       }
 
       return BackupData.fromJson(json);
+    } on BackupCancelled {
+      return null;
     } on SecureStorageUnavailableException {
       rethrow;
     } catch (e) {
@@ -728,7 +763,7 @@ class BackupService {
         return null;
       }
 
-      var json = jsonDecode(backupContent) as Map<String, dynamic>;
+      var json = await _decode(backupContent);
 
       // 检查是否需要数据迁移
       final backupVersion = json['version'] as String? ?? '1.0.0';
@@ -737,6 +772,8 @@ class BackupService {
       }
 
       return BackupData.fromJson(json);
+    } on BackupCancelled {
+      return null;
     } on SecureStorageUnavailableException {
       rethrow;
     } catch (e) {
@@ -795,4 +832,8 @@ class _PreparedBackupFile {
     required this.content,
     required this.secureStorageEpoch,
   });
+}
+
+class BackupCancelled implements Exception {
+  const BackupCancelled();
 }

@@ -1,3 +1,6 @@
+import 'services/fork_update_service.dart';
+import 'widgets/fork_update_dialog.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -25,8 +28,6 @@ import 'services/image_http_client.dart';
 import 'services/settings/display_settings_manager.dart';
 import 'services/storage/storage_service.dart';
 import 'services/theme/theme_manager.dart';
-import 'services/backup_service.dart';
-import 'services/webdav_service.dart';
 import 'providers/aggregate_search_provider.dart';
 import 'services/site_config_service.dart';
 import 'services/site_health_refresh_service.dart';
@@ -186,10 +187,8 @@ class AppState extends ChangeNotifier {
         // Don't rethrow here, as it's not critical
       }
 
-      // WebDAV restore must finish before Cookie Cloud applies its plan. Both
-      // remain non-blocking for the first frame, but share one ordered queue so
-      // a late restore cannot overwrite a newer Cookie Cloud result.
-      unawaited(_enqueueAutomaticSync(includeWebDavRestore: true));
+      // Remote backups are restored only after explicit confirmation.
+      unawaited(_enqueueAutomaticSync(includeWebDavRestore: false));
       // 应用启动后静默刷新站点健康状态缓存
       unawaited(
         Future.microtask(() => _refreshSiteHealthStatusesInBackground()),
@@ -233,7 +232,7 @@ class AppState extends ChangeNotifier {
 
   @visibleForTesting
   Future<void> runAutomaticSyncSequenceForTest({
-    bool includeWebDavRestore = true,
+    bool includeWebDavRestore = false,
   }) => _enqueueAutomaticSync(includeWebDavRestore: includeWebDavRestore);
 
   @visibleForTesting
@@ -278,69 +277,7 @@ class AppState extends ChangeNotifier {
 
   /// 检查自动同步
   Future<void> _checkAutoSync() async {
-    if (_pauseForSecureStorageFailure()) return;
-
-    final storage = StorageService.instance;
-    try {
-      final epoch = storage.captureSecureStorageOperationEpoch();
-      await storage.runWithSecureStorageOperationEpoch(epoch, () async {
-        final webdavService = WebDAVService.instance;
-        final config = await webdavService.loadConfig();
-        storage.requireSecureStorageOperationEpoch(epoch);
-
-        // 检查是否启用了自动同步
-        if (config != null && config.autoSync) {
-          if (kDebugMode) {
-            _logger.i('AppState: 检测到启用自动同步，开始执行自动同步检查');
-          }
-
-          final backupService = BackupService(storage);
-
-          // 检查是否有远程备份可以下载
-          final remoteBackups = await backupService.listWebDAVBackups();
-          storage.requireSecureStorageOperationEpoch(epoch);
-          if (remoteBackups.isNotEmpty) {
-            if (kDebugMode) {
-              _logger.i('AppState: 发现${remoteBackups.length}个远程备份，准备自动同步最新的');
-            }
-
-            // 获取最新的备份文件路径
-            final latestBackup = remoteBackups.first;
-            final backupPath = latestBackup['path'] as String;
-
-            // 下载并恢复最新的备份
-            final backupData = await backupService.downloadWebDAVBackup(
-              backupPath,
-            );
-            storage.requireSecureStorageOperationEpoch(epoch);
-            if (backupData != null) {
-              final result = await backupService.restoreBackup(
-                backupData,
-                expectedSecureStorageEpoch: epoch,
-              );
-              storage.requireSecureStorageOperationEpoch(epoch);
-              if (result.success) {
-                if (kDebugMode) {
-                  _logger.i('AppState: 自动同步完成');
-                }
-              } else if (kDebugMode) {
-                _logger.e('AppState: 自动同步失败: ${result.message}');
-              }
-            }
-          } else if (kDebugMode) {
-            _logger.i('AppState: 未发现远程备份，跳过自动同步');
-          }
-        } else if (kDebugMode) {
-          _logger.i('AppState: 自动同步未启用或配置不存在');
-        }
-      });
-    } catch (e) {
-      _pauseForSecureStorageFailure();
-      if (kDebugMode) {
-        _logger.e('AppState: 检查自动同步配置失败: $e');
-      }
-      // 配置检查失败不影响应用正常启动
-    }
+    // Never restore remote configuration during startup or an app upgrade.
   }
 
   Future<void> _refreshSiteHealthStatusesInBackground() async {
@@ -1109,6 +1046,7 @@ class MTeamAppState extends State<MTeamApp> with WidgetsBindingObserver {
   bool _backupRestoreOpen = false;
   bool _hasLeftForeground = false;
   bool _showAndroidPlaintextStorageWarning = true;
+  bool _forkUpdateDialogOpen = false;
 
   @override
   void initState() {
@@ -1130,6 +1068,7 @@ class MTeamAppState extends State<MTeamApp> with WidgetsBindingObserver {
   Future<void> _loadApplicationState({bool forceReload = false}) async {
     try {
       await _appState.loadInitial(forceReload: forceReload);
+      if (!kDebugMode) unawaited(_checkForkUpdate());
     } on SecureStorageUnavailableException catch (error) {
       _disableProxyForSecureStorageFailure();
       if (!mounted) return;
@@ -1143,6 +1082,36 @@ class MTeamAppState extends State<MTeamApp> with WidgetsBindingObserver {
         _secureStorageReady = false;
         _secureStorageFailureCode = error.runtimeType.toString();
       });
+    }
+  }
+
+  Future<void> _checkForkUpdate() async {
+    if (defaultTargetPlatform != TargetPlatform.android ||
+        _forkUpdateDialogOpen) {
+      return;
+    }
+    try {
+      final release = await ForkUpdateService.instance.check();
+      final context = _navigatorKey.currentContext;
+      if (!mounted ||
+          context == null ||
+          release == null ||
+          _forkUpdateDialogOpen) {
+        return;
+      }
+      _forkUpdateDialogOpen = true;
+      try {
+        if (!context.mounted) return;
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => ForkUpdateDialog(release: release),
+        );
+      } finally {
+        _forkUpdateDialogOpen = false;
+      }
+    } catch (_) {
+      // Offline or unpublished builds do not interrupt normal use.
     }
   }
 

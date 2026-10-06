@@ -1,3 +1,6 @@
+import '../services/fork_update_service.dart';
+import '../widgets/fork_update_dialog.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -52,10 +55,29 @@ class _AboutPageState extends State<AboutPage> {
       ),
       body: _AboutBody(
         version: _version.isEmpty ? '读取中...' : _version,
+        onCheckUpdates: _checkUpdates,
         onOpenUrl: _openUrl,
         onCopyVersion: _copyVersionInfo,
       ),
     );
+  }
+
+  Future<void> _checkUpdates() async {
+    try {
+      final release = await ForkUpdateService.instance.check(force: true);
+      if (!mounted) return;
+      if (release == null) {
+        NotificationHelper.showInfo(context, '当前已经是最新版本');
+      } else {
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => ForkUpdateDialog(release: release),
+        );
+      }
+    } catch (_) {
+      if (mounted) NotificationHelper.showError(context, '无法读取仓库更新，请稍后重试');
+    }
   }
 
   Future<void> _openUrl(String url) async {
@@ -76,10 +98,12 @@ class _AboutBody extends StatelessWidget {
   const _AboutBody({
     required this.version,
     required this.onOpenUrl,
+    required this.onCheckUpdates,
     required this.onCopyVersion,
   });
 
   final String version;
+  final VoidCallback onCheckUpdates;
   final ValueChanged<String> onOpenUrl;
   final VoidCallback onCopyVersion;
 
@@ -98,6 +122,7 @@ class _AboutBody extends StatelessWidget {
             const SizedBox(height: 8),
             _VersionCard(
               version: version,
+              onCheckUpdates: onCheckUpdates,
               onOpenReleases: () => onOpenUrl(_releasesUrl),
             ),
             const SizedBox(height: 16),
@@ -212,10 +237,15 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _VersionCard extends StatelessWidget {
-  const _VersionCard({required this.version, required this.onOpenReleases});
+  const _VersionCard({
+    required this.version,
+    required this.onOpenReleases,
+    required this.onCheckUpdates,
+  });
 
   final String version;
   final VoidCallback onOpenReleases;
+  final VoidCallback onCheckUpdates;
 
   @override
   Widget build(BuildContext context) {
@@ -230,6 +260,11 @@ class _VersionCard extends StatelessWidget {
               leading: const Icon(Icons.new_releases_outlined),
               title: const Text('当前安装版本'),
               subtitle: Text(version),
+            ),
+            FilledButton.icon(
+              onPressed: onCheckUpdates,
+              icon: const Icon(Icons.system_update),
+              label: const Text('检查更新'),
             ),
             OutlinedButton.icon(
               onPressed: onOpenReleases,

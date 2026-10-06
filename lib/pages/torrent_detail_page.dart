@@ -1,3 +1,5 @@
+import '../services/network/request_security.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
@@ -1801,6 +1803,14 @@ class _TorrentDetailPageState extends State<TorrentDetailPage> {
   }
 
   Widget buildWebViewContent(String webviewUrl) {
+    final target = Uri.tryParse(webviewUrl);
+    final origin = Uri.tryParse(widget.siteConfig?.baseUrl ?? '');
+    if (target == null ||
+        origin == null ||
+        !RequestSecurity.sameOrigin(target, origin) ||
+        !RequestSecurity.safeTransport(target)) {
+      return const Center(child: Text('已阻止站点外部或不安全的详情页面'));
+    }
     // 检查是否为Android平台
     if (defaultTargetPlatform == TargetPlatform.linux ||
         defaultTargetPlatform == TargetPlatform.windows ||
@@ -1941,17 +1951,28 @@ class _TorrentDetailPageState extends State<TorrentDetailPage> {
                 initialUrlRequest: URLRequest(
                   url: WebUri(webviewUrl),
                   headers:
-                      widget.siteConfig?.cookie != null &&
+                      widget.siteConfig != null &&
+                          RequestSecurity.sameOrigin(
+                            Uri.parse(webviewUrl),
+                            Uri.parse(widget.siteConfig!.baseUrl),
+                          ) &&
+                          RequestSecurity.safeTransport(
+                            Uri.parse(webviewUrl),
+                          ) &&
+                          widget.siteConfig?.cookie != null &&
                           widget.siteConfig!.cookie!.isNotEmpty
                       ? {'Cookie': widget.siteConfig!.cookie!}
                       : null,
                 ),
                 initialSettings: InAppWebViewSettings(
                   javaScriptEnabled: true,
+                  thirdPartyCookiesEnabled: false,
+                  mixedContentMode: MixedContentMode.MIXED_CONTENT_NEVER_ALLOW,
                   domStorageEnabled: true,
                   allowsInlineMediaPlayback: true,
                   mediaPlaybackRequiresUserGesture: false,
                   useOnDownloadStart: true,
+                  useShouldInterceptRequest: true,
                   useShouldOverrideUrlLoading: true,
                   forceDark: Theme.of(context).brightness == Brightness.dark
                       ? ForceDark.ON
@@ -1959,6 +1980,20 @@ class _TorrentDetailPageState extends State<TorrentDetailPage> {
                   algorithmicDarkeningAllowed:
                       Theme.of(context).brightness == Brightness.dark,
                 ),
+                shouldInterceptRequest: (controller, request) async {
+                  final uri = Uri.tryParse(request.url.toString());
+                  if (uri != null &&
+                      RequestSecurity.sameOrigin(uri, origin) &&
+                      RequestSecurity.safeTransport(uri)) {
+                    return null;
+                  }
+                  return WebResourceResponse(
+                    contentType: 'text/plain',
+                    statusCode: 403,
+                    reasonPhrase: 'Forbidden',
+                    data: Uint8List(0),
+                  );
+                },
                 onWebViewCreated: (controller) async {
                   if (!mounted) return;
                   _webViewController = controller;
@@ -1975,7 +2010,7 @@ class _TorrentDetailPageState extends State<TorrentDetailPage> {
                           url: WebUri(baseUrl),
                           name: parts[0].trim(),
                           value: parts[1].trim(),
-                          domain: baseUri.host,
+                          isSecure: baseUri.scheme == 'https',
                           isHttpOnly: true,
                         );
                       }
@@ -2016,6 +2051,12 @@ class _TorrentDetailPageState extends State<TorrentDetailPage> {
                 },
                 shouldOverrideUrlLoading: (controller, navigationAction) async {
                   final url = navigationAction.request.url.toString();
+                  final destination = Uri.tryParse(url);
+                  if (destination == null ||
+                      !RequestSecurity.sameOrigin(destination, origin) ||
+                      !RequestSecurity.safeTransport(destination)) {
+                    return NavigationActionPolicy.CANCEL;
+                  }
 
                   // 如果是下载链接，使用系统浏览器打开
                   if (url.contains('download') || url.contains('.torrent')) {

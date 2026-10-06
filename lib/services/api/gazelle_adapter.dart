@@ -1,7 +1,11 @@
+import '../network/request_security.dart';
+
 import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
+
 import '../../models/app_models.dart';
 import '../site_config_service.dart';
 import 'site_adapter.dart';
@@ -34,13 +38,19 @@ class GazelleAdapter extends SiteAdapter {
       ),
     );
     _dio.options.baseUrl = _siteConfig.baseUrl;
-    _dio.options.headers['User-Agent'] =
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36';
+    _dio.options.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36';
 
     // 添加 Cookie 拦截器
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
+          try {
+            RequestSecurity.requireOrigin(options, _siteConfig.baseUrl);
+          } on DioException catch (error) {
+            handler.reject(error);
+            return;
+          }
+
           // 动态添加 Cookie
           if (_siteConfig.cookie != null && _siteConfig.cookie!.isNotEmpty) {
             options.headers['Cookie'] = _siteConfig.cookie;
