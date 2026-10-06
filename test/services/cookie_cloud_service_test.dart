@@ -177,6 +177,29 @@ void main() {
     });
   });
 
+  test(
+    'buildSyncPlan recommends both Luminance presets and their aliases',
+    () async {
+      for (final entry in {
+        'www.happyfappy.net': 'happyfappy',
+        'happyfappy.net': 'happyfappy',
+        'www.happyfappy.org': 'happyfappy',
+        'www.empornium.sx': 'empornium',
+        'empornium.sx': 'empornium',
+        'www.empornium.is': 'empornium',
+        'www.empornium.me': 'empornium',
+      }.entries) {
+        final plan = await service.buildSyncPlan({
+          entry.key: 'session=fixture',
+        });
+        expect(plan.additions, hasLength(1));
+        expect(plan.additions.single.template?.id, entry.value);
+        expect(plan.additions.single.template?.siteType, SiteType.web);
+        expect(plan.unknown, isEmpty);
+      }
+    },
+  );
+
   test('buildSyncPlan should recommend Gazelle templates', () async {
     final templates = await SiteConfigService.loadPresetSiteTemplates();
     final template = templates.firstWhere(

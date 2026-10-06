@@ -1,0 +1,325 @@
+{
+  "id": "happyfappy",
+  "name": "HappyFappy (HF)",
+  "isShow": true,
+  "baseUrls": [
+    "https://www.happyfappy.net/",
+    "https://www.happyfappy.org/"
+  ],
+  "primaryUrl": "https://www.happyfappy.net/",
+  "siteType": "Web",
+  "operationIntervalMs": 1000,
+  "searchCategories": [
+    {
+      "id": "all",
+      "displayName": "All",
+      "parameters": ""
+    },
+    {
+      "id": "15",
+      "displayName": "AI",
+      "parameters": "{\"filter_cat[15]\": \"1\"}"
+    },
+    {
+      "id": "11",
+      "displayName": "Asian",
+      "parameters": "{\"filter_cat[11]\": \"1\"}"
+    },
+    {
+      "id": "6",
+      "displayName": "Fansite",
+      "parameters": "{\"filter_cat[6]\": \"1\"}"
+    },
+    {
+      "id": "13",
+      "displayName": "Games",
+      "parameters": "{\"filter_cat[13]\": \"1\"}"
+    },
+    {
+      "id": "3",
+      "displayName": "Gay / Bi",
+      "parameters": "{\"filter_cat[3]\": \"1\"}"
+    },
+    {
+      "id": "4",
+      "displayName": "Interracial",
+      "parameters": "{\"filter_cat[4]\": \"1\"}"
+    },
+    {
+      "id": "5",
+      "displayName": "Lesbian",
+      "parameters": "{\"filter_cat[5]\": \"1\"}"
+    },
+    {
+      "id": "9",
+      "displayName": "Packs",
+      "parameters": "{\"filter_cat[9]\": \"1\"}"
+    },
+    {
+      "id": "10",
+      "displayName": "Pics",
+      "parameters": "{\"filter_cat[10]\": \"1\"}"
+    },
+    {
+      "id": "1",
+      "displayName": "Pron",
+      "parameters": "{\"filter_cat[1]\": \"1\"}"
+    },
+    {
+      "id": "8",
+      "displayName": "Retro",
+      "parameters": "{\"filter_cat[8]\": \"1\"}"
+    },
+    {
+      "id": "14",
+      "displayName": "Scat",
+      "parameters": "{\"filter_cat[14]\": \"1\"}"
+    },
+    {
+      "id": "12",
+      "displayName": "Transsexual",
+      "parameters": "{\"filter_cat[12]\": \"1\"}"
+    },
+    {
+      "id": "7",
+      "displayName": "VR",
+      "parameters": "{\"filter_cat[7]\": \"1\"}"
+    }
+  ],
+  "features": {
+    "userProfile": true,
+    "torrentSearch": true,
+    "torrentBrowse": true,
+    "torrentDetail": true,
+    "download": true,
+    "favorites": false,
+    "downloadHistory": false,
+    "categorySearch": true,
+    "advancedSearch": false,
+    "showCover": true,
+    "commentDetail": false,
+    "nativeDetail": false
+  },
+  "discountMapping": {
+    "Freeleech": "FREE"
+  },
+  "tagMapping": {},
+  "infoFinder": {
+    "userInfo": {
+      "steps": [
+        {
+          "path": "/",
+          "rows": {
+            "selector": "@@body"
+          },
+          "fields": {
+            "userId": {
+              "selector": "@@#nav_userinfo > a[href*='user.php?id=']",
+              "attribute": "href",
+              "filter": {
+                "name": "regexp",
+                "args": "[?&]id=(\\d+)",
+                "value": "$1"
+              },
+              "required": true
+            },
+            "userName": {
+              "selector": "@@#nav_userinfo > a.username",
+              "attribute": "text",
+              "required": true
+            }
+          }
+        },
+        {
+          "path": "/user.php?id={userId}",
+          "rows": {
+            "selector": "@@body"
+          },
+          "fields": {
+            "upload": {
+              "selector": "li:contains('Uploaded:')",
+              "attribute": "text",
+              "filter": {
+                "name": "regexp",
+                "args": "^Uploaded:\\s*([\\d.,]+\\s*[KMGTPE]?i?B)",
+                "value": "$1"
+              },
+              "required": true
+            },
+            "download": {
+              "selector": "li:contains('Downloaded:')",
+              "attribute": "text",
+              "filter": {
+                "name": "regexp",
+                "args": "^Downloaded:\\s*([\\d.,]+\\s*[KMGTPE]?i?B)",
+                "value": "$1"
+              },
+              "required": true
+            },
+            "ratio": {
+              "selector": "li:contains('Ratio:')",
+              "attribute": "text",
+              "filter": {
+                "name": "regexp",
+                "args": "^Ratio:\\s*([\\d.,]+|∞|Inf(?:inity)?)",
+                "value": "$1"
+              }
+            },
+            "bonus": {
+              "selector": "@@#stats_credits",
+              "attribute": "text"
+            }
+          }
+        }
+      ]
+    },
+    "search": {
+      "parser": "flatTable",
+      "rows": {
+        "selector": "@@table#torrent_table tr.torrent"
+      },
+      "fields": {
+        "torrentId": {
+          "selector": "@@a[href*='torrents.php?action=download&id=']",
+          "attribute": "href",
+          "filter": {
+            "name": "regexp",
+            "args": "[?&]id=(\\d+)",
+            "value": "$1"
+          }
+        },
+        "torrentName": {
+          "selector": "@@a[href*='torrents.php?id=']",
+          "attribute": "text",
+          "stripSelectors": [
+            "@@span.reported"
+          ]
+        },
+        "detailUrl": {
+          "selector": "@@a[href*='torrents.php?id=']",
+          "attribute": "href"
+        },
+        "downloadUrl": {
+          "selector": "@@a[href*='torrents.php?action=download&id=']",
+          "attribute": "href"
+        },
+        "description": {
+          "selector": "@@div.tags",
+          "attribute": "text"
+        },
+        "cover": {
+          "selector": "td:nth-child(2) > script",
+          "attribute": "text",
+          "filters": [
+            {
+              "name": "regexp",
+              "args": "=\\s*(\"(?:\\\\.|[^\"\\\\])*\")",
+              "value": "$1"
+            },
+            {
+              "name": "jsonDecode"
+            },
+            {
+              "name": "htmlAttribute",
+              "selector": "@@img",
+              "attribute": "src"
+            },
+            {
+              "name": "replace",
+              "args": [
+                "/static/common/noartwork/noimage.png",
+                ""
+              ]
+            }
+          ]
+        },
+        "createDate": {
+          "selector": "td:nth-child(5) > span",
+          "attribute": "title",
+          "filter": {
+            "name": "regexp",
+            "args": "(\\w{3}\\s+\\d{1,2}\\s+\\d{4},\\s*\\d{2}:\\d{2})",
+            "value": "$1"
+          },
+          "time": {
+            "format": "MMM dd yyyy, HH:mm",
+            "zone": "+00:00"
+          }
+        },
+        "sizeText": {
+          "selector": "td:nth-child(6)",
+          "attribute": "text"
+        },
+        "seedersText": {
+          "selector": "td:nth-child(8)",
+          "attribute": "text"
+        },
+        "leechersText": {
+          "selector": "td:nth-child(9)",
+          "attribute": "text"
+        },
+        "comments": {
+          "selector": "td:nth-child(4)",
+          "attribute": "text"
+        },
+        "discount": {
+          "selector": "@@span.icon[title*='Freeleech'], img[alt='Freeleech']",
+          "attribute": "title"
+        },
+        "freeleech": {
+          "selector": "@@img[alt='Freeleech']",
+          "attribute": "alt"
+        },
+        "createDateText": {
+          "selector": "td:nth-child(5) > span",
+          "attribute": "text",
+          "filter": {
+            "name": "regexp",
+            "args": "(\\w{3}\\s+\\d{1,2}\\s+\\d{4},\\s*\\d{2}:\\d{2})",
+            "value": "$1"
+          },
+          "time": {
+            "format": "MMM dd yyyy, HH:mm",
+            "zone": "+00:00"
+          }
+        }
+      },
+      "totalPages": {
+        "rows": {
+          "selector": "@@.linkbox a[href*=\"page=\"]"
+        },
+        "fields": {
+          "totalPages": {
+            "selector": "",
+            "attribute": "href",
+            "filter": {
+              "name": "regexp",
+              "args": "[?&]page=(\\d+)",
+              "value": "$1"
+            }
+          }
+        }
+      }
+    }
+  },
+  "request": {
+    "loginPage": {
+      "path": "/login"
+    },
+    "search": {
+      "path": "/torrents.php",
+      "method": "GET",
+      "params": {
+        "action": "advanced",
+        "title": "{keyword}",
+        "page": "{page}",
+        "order_by": "time",
+        "order_way": "desc"
+      }
+    },
+    "detail": {
+      "path": "/torrents.php?torrentid={torrentId}"
+    }
+  },
+  "logo": "assets/sites_icon/_default_nexusphp.png"
+}

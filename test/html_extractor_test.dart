@@ -1,8 +1,92 @@
+import 'package:beautiful_soup_dart/beautiful_soup.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pt_mate/models/app_models.dart';
 import 'package:pt_mate/services/api/html_extractor.dart';
 
 void main() {
+  group('HTML field filter pipelines', () {
+    test('decodes an escaped JSON overlay and its HTML image attribute', () {
+      final config = FieldConfig.fromJson({
+        'selector': '@@script',
+        'attribute': 'text',
+        'filters': [
+          {
+            'name': 'regexp',
+            'args': r'=\s*("(?:\\.|[^"\\])*")',
+            'value': r'$1',
+          },
+          {'name': 'jsonDecode'},
+          {'name': 'htmlAttribute', 'selector': '@@img', 'attribute': 'src'},
+        ],
+      });
+      final soup = BeautifulSoup(
+        r'''<script>var overlay = "<img src=\"https:\/\/example.test\/cover\u002d1.jpg?a=1&amp;b=2\">"</script>''',
+      );
+      expect(
+        HtmlExtractor().extractFieldSync(soup, config).string,
+        'https://example.test/cover-1.jpg?a=1&b=2',
+      );
+    });
+
+    test(
+      'stops on missing or malformed JSON without returning script text',
+      () {
+        final config = FieldConfig.fromJson({
+          'attribute': 'text',
+          'filters': [
+            {'name': 'jsonDecode'},
+          ],
+        });
+        for (final value in ['not json', r'"bad\q"', '123', '{"image": "a"}']) {
+          expect(
+            HtmlExtractor()
+                .extractFieldSync(BeautifulSoup('<div>$value</div>'), config)
+                .hasValue,
+            isFalse,
+          );
+        }
+      },
+    );
+
+    test(
+      'applies legacy filter before the pipeline and suppresses placeholders',
+      () {
+        final config = FieldConfig.fromJson({
+          'attribute': 'text',
+          'filter': {'name': 'regexp', 'args': r'image=(.+)', 'value': r'$1'},
+          'filters': [
+            {
+              'name': 'replace',
+              'args': ['/noimage.png', ''],
+            },
+          ],
+        });
+        expect(
+          HtmlExtractor()
+              .extractFieldSync(
+                BeautifulSoup('<div>image=/noimage.png</div>'),
+                config,
+              )
+              .hasValue,
+          isFalse,
+        );
+        expect(
+          HtmlExtractor()
+              .extractFieldSync(
+                BeautifulSoup('<div>image=/cover.png</div>'),
+                config,
+              )
+              .string,
+          '/cover.png',
+        );
+      },
+    );
+
+    test('reads formatted sizes with thousands separators', () {
+      expect(TypedConverter.parseSizeToBytes('1,024.00 MiB'), 1073741824);
+    });
+  });
+
   group('FieldConfig', () {
     test('should create from JSON', () {
       final config = FieldConfig.fromJson({

@@ -203,7 +203,9 @@
 - `standaloneFields`：独立 `torrent_redline`/`torrent` 行字段；
 - `stripSelectors`（或 `excludeSelectors`）：提取文本前移除标签、评论链接等子元素，避免污染父级标题；
 - `join` 与 `separator`：将已提取的非空字段组合为计算字段。例如 `{"torrentName":{"join":["title","artist"],"separator":" - "}}` 会生成“标题 - 艺术家”；缺少艺术家时不会留下多余分隔符；
-- `cover`：封面字段使用图片的 `src` 属性；相对地址会自动转为站点绝对 URL；
+- `cover`：封面字段使用图片的 `src` 属性；相对地址会自动转为站点绝对 URL。Luminance 的悬浮预览可用字段级 `filters` 解码；
+- `filters`：按顺序执行的字段过滤器，在原有单个 `filter` 之后运行。支持 `regexp`（`args`/`value`）、`jsonDecode`（只接受 JSON 字符串）、`htmlAttribute`（从解码后的 HTML 按 `selector`/`attribute` 提取属性并解码 HTML 实体）和 `replace`（`args: [查找文本, 替换文本]`）。任一步失败或结果为空即停止，不执行页面脚本。例如从 `<script>` 提取 JSON 字面量、解码为 HTML、提取图片 `src`、移除默认占位图片；
+- `createDateText`：`createDate` 属性缺失或不是有效日期时使用的备用文本日期字段；两者各自使用字段中的 `time.format` 和 `time.zone`；
 - `detailUrl` 与 `downloadUrl`：直接从页面提取，适配器会转为绝对 URL，不应拼接或保存认证参数。
 
 #### 配置示例

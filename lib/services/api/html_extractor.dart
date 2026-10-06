@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:beautiful_soup_dart/beautiful_soup.dart';
+
 import '../../models/app_models.dart';
 import '../../utils/format.dart';
 import 'base_web_adapter.dart';
@@ -21,6 +25,7 @@ class FieldConfig {
   final Map<String, dynamic> _json;
   final RegExp? regexpFilter;
   final String? filterFormat;
+  final List<FieldConfig> _filters;
 
   FieldConfig({
     this.selector,
@@ -38,7 +43,8 @@ class FieldConfig {
          if (required) 'required': required,
        },
        regexpFilter = _compileRegexpFilter(filter),
-       filterFormat = filter?['value'] as String?;
+       filterFormat = filter?['value'] as String?,
+       _filters = const [];
 
   FieldConfig._({
     this.selector,
@@ -50,6 +56,7 @@ class FieldConfig {
     required this._json,
     this.regexpFilter,
     this.filterFormat,
+    this._filters = const [],
   });
 
   /// 从 JSON/Map 构造，兼容现有配置格式
@@ -65,6 +72,12 @@ class FieldConfig {
       json: Map<String, dynamic>.from(json),
       regexpFilter: _compileRegexpFilter(filter),
       filterFormat: filter?['value'] as String?,
+      filters: (json['filters'] as List<dynamic>? ?? const [])
+          .map(
+            (item) =>
+                FieldConfig(filter: Map<String, dynamic>.from(item as Map)),
+          )
+          .toList(),
     );
   }
 
@@ -158,7 +171,7 @@ class TypedConverter {
   static int parseSizeToBytes(String? sizeText) {
     if (sizeText == null || sizeText.isEmpty) return 0;
 
-    final match = _sizeRegExp.firstMatch(sizeText);
+    final match = _sizeRegExp.firstMatch(sizeText.replaceAll(',', ''));
     if (match == null) return 0;
 
     final sizeValue = double.tryParse(match.group(1) ?? '0') ?? 0;
@@ -342,6 +355,10 @@ class HtmlExtractor with BaseWebAdapterMixin {
 
       if (value != null) {
         value = _applyCompiledFilter(value, config);
+        for (final filter in config._filters) {
+          if (value == null || value.isEmpty) break;
+          value = _applyCompiledFilter(value, filter);
+        }
       }
 
       if (value != null && value.isNotEmpty) {
@@ -358,6 +375,32 @@ class HtmlExtractor with BaseWebAdapterMixin {
     final regex = config.regexpFilter;
     if (regex == null) {
       if (config.filter == null) return value;
+      if (config.filter?['name'] == 'jsonDecode') {
+        try {
+          final decoded = jsonDecode(value);
+          return decoded is String ? decoded : null;
+        } on FormatException {
+          return null;
+        }
+      }
+      if (config.filter?['name'] == 'htmlAttribute') {
+        return extractFieldSync(
+          BeautifulSoup(value),
+          FieldConfig(
+            selector: config.filter?['selector'] as String?,
+            attribute: config.filter?['attribute'] as String?,
+          ),
+        ).string;
+      }
+      if (config.filter?['name'] == 'replace') {
+        final args = config.filter?['args'];
+        if (args is List &&
+            args.length == 2 &&
+            args.every((arg) => arg is String)) {
+          return value.replaceAll(args[0] as String, args[1] as String);
+        }
+        return null;
+      }
       return applyFilter(value, config.filter!);
     }
     final match = regex.firstMatch(value);

@@ -679,10 +679,9 @@ class WebSearchParser {
       'isFreeleech',
     ]);
     final discount = _parseDiscount(discountRaw, discountMapping);
-    final createDate = _parseDate(
-      values['createDate'],
-      rawFields['createDate'],
-    );
+    final createDate =
+        _parseDate(values['createDate'], rawFields['createDate']) ??
+        _parseDate(values['createDateText'], rawFields['createDateText']);
     final discountEnd = _parseDate(
       values['discountEndTime'],
       rawFields['discountEndTime'],
