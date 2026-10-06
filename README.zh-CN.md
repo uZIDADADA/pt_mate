@@ -4,7 +4,7 @@
 
 基于 Flutter（Material Design 3）开发的私有种子站点客户端，支持多种 PT 站点的种子浏览、搜索和下载管理。
 
-📣 官方交流群（Telegram）：[加入 PT Mate 官方交流群](https://t.me/pt_mate)
+此分支移除了群推广、自动更新检查、设备上报和统计后台。发布版本通过本仓库的 Releases 手动查看。详见[分支说明](docs/FORK_NOTES.md)。
 
 ## 功能概览
 
@@ -89,17 +89,6 @@ flutter run
 git config core.hooksPath .githooks
 ```
 
-## iOS 侧载源
-
-SideStore：
-[添加 PT Mate Source](https://intradeus.github.io/http-protocol-redirector?r=sidestore://source?url=https://raw.githubusercontent.com/JustLookAtNow/pt_mate/refs/heads/master/altsource/AltSource.json)
-
-直接源地址：
-
-```text
-https://raw.githubusercontent.com/JustLookAtNow/pt_mate/refs/heads/master/altsource/AltSource.json
-```
-
 ## 文档
 
 - [文档目录](./docs/README.md)
@@ -111,13 +100,3 @@ https://raw.githubusercontent.com/JustLookAtNow/pt_mate/refs/heads/master/altsou
 ## 许可证
 
 MIT License，详见 [LICENSE](./LICENSE)。
-
-## Star 趋势
-
-<a href="https://www.star-history.com/?type=date&repos=JustLookAtNow%2Fpt_mate">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=JustLookAtNow/pt_mate&type=date&theme=dark&legend=top-left&sealed_token=oGvG8BxnJBegGpMRqHZKqPu0DzdgRr5709NsgF0ER046oY-wdqreskuzY127FJ8__EV4uie-0HSe9Gin94iVJ7WRPeDeJqCZvKern3qqu-IfcU_XqWSFlUVUEforyPudF31lxWZSxsZGxl7njZF8rd9DCkO_5oDBiVNAgz7rjyYXXcYrUJ99HlemM2kF" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=JustLookAtNow/pt_mate&type=date&legend=top-left&sealed_token=oGvG8BxnJBegGpMRqHZKqPu0DzdgRr5709NsgF0ER046oY-wdqreskuzY127FJ8__EV4uie-0HSe9Gin94iVJ7WRPeDeJqCZvKern3qqu-IfcU_XqWSFlUVUEforyPudF31lxWZSxsZGxl7njZF8rd9DCkO_5oDBiVNAgz7rjyYXXcYrUJ99HlemM2kF" />
-    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=JustLookAtNow/pt_mate&type=date&legend=top-left&sealed_token=oGvG8BxnJBegGpMRqHZKqPu0DzdgRr5709NsgF0ER046oY-wdqreskuzY127FJ8__EV4uie-0HSe9Gin94iVJ7WRPeDeJqCZvKern3qqu-IfcU_XqWSFlUVUEforyPudF31lxWZSxsZGxl7njZF8rd9DCkO_5oDBiVNAgz7rjyYXXcYrUJ99HlemM2kF" />
-  </picture>
-</a>

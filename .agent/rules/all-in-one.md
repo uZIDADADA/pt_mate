@@ -2,9 +2,8 @@
 trigger: always_on
 ---
 
-不需要帮我启动预览展示，我会自己来启动后验证功能。
 如果改了dart代码，修改完毕后使用 flutter analyze 来检查代码是否有问题。
-修改包名时使用rename setBundleId --targets android,ios,linux,macos,windows --value "com.github.justlookatnow.ptmate"
+应用标识用于安装及安全存储兼容。修改时须同步所有平台、测试与侧载元数据，并说明迁移影响。
 
 "取消"按钮请加上边框线，          
 style: TextButton.styleFrom(

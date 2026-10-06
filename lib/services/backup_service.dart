@@ -194,7 +194,6 @@ class BackupService {
     final cookieCloudConfig = await _storageService.loadCookieCloudConfig();
     data['cookieCloudConfig'] = cookieCloudConfig.toJson();
 
-    data['deviceId'] = await _storageService.loadDeviceId();
     final webdavConfig = await _webdavService.loadConfig();
     final webdavHistory = await _webdavService.loadConfigHistory();
     data['webdavConfig'] = webdavConfig?.toJson();
@@ -471,7 +470,6 @@ class BackupService {
             ? null
             : restoredDownloaderPasswords,
         downloaderIds: restoredDownloaderIds,
-        deviceId: migratedData['deviceId'] as String?,
         webdavPasswords: restoredWebdavPasswords.isEmpty
             ? null
             : restoredWebdavPasswords,

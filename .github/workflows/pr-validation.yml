@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - master
+      - dev
 
 permissions:
   contents: read
@@ -79,27 +80,6 @@ jobs:
       - name: Run all Flutter tests
         run: flutter test
 
-  go-test:
-    name: Go tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: server
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup Go
-        uses: actions/setup-go@v6
-        with:
-          go-version-file: server/go.mod
-          cache: true
-          cache-dependency-path: server/go.sum
-
-      - name: Run all Go tests
-        run: go test ./...
-
   android-test:
     name: Android unit tests
     runs-on: ubuntu-latest
@@ -156,7 +136,6 @@ jobs:
     needs:
       - flutter-analyze
       - flutter-test
-      - go-test
       - android-test
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -165,10 +144,8 @@ jobs:
         env:
           FLUTTER_ANALYZE_RESULT: ${{ needs.flutter-analyze.result }}
           FLUTTER_TEST_RESULT: ${{ needs.flutter-test.result }}
-          GO_TEST_RESULT: ${{ needs.go-test.result }}
           ANDROID_TEST_RESULT: ${{ needs.android-test.result }}
         run: |
           test "$FLUTTER_ANALYZE_RESULT" = success
           test "$FLUTTER_TEST_RESULT" = success
-          test "$GO_TEST_RESULT" = success
           test "$ANDROID_TEST_RESULT" = success

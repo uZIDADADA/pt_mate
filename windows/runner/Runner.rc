@@ -89,7 +89,7 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.github.justlookatnow" "\0"
+            VALUE "CompanyName", "PT Mate" "\0"
             VALUE "FileDescription", "pt_mate" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "pt_mate" "\0"

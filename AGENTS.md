@@ -1,12 +1,11 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-This repository contains a Flutter client and a small Go backend.
+This repository contains a Flutter client. The fork removes the upstream telemetry and update backend.
 
 - `lib/`: Flutter app code (`pages/`, `services/`, `providers/`, `widgets/`, `models/`).
 - `test/`: Dart/Flutter tests, including widget and service tests (`*_test.dart`).
 - `assets/`: app assets and site definitions (`assets/sites/` + generated `assets/sites_manifest.json`).
-- `server/`: Go API service (`main.go`, `cmd/`, `migrations/`, `admin/`).
 - Platform folders: `android/`, `ios/`, `linux/`, `macos/`, `windows/`, `web/`.
 
 ## Build, Test, and Development Commands
@@ -16,8 +15,6 @@ This repository contains a Flutter client and a small Go backend.
 - `flutter analyze`: run static analysis with configured lints.
 - `flutter test`: run all Flutter tests.
 - `./generate_sites_manifest.sh`: regenerate site manifest after editing `assets/sites/*`.
-- `cd server && go run .`: run backend locally.
-- `cd server && go test ./...`: run backend tests.
 
 ## Coding Style & Naming Conventions
 - Follow `analysis_options.yaml` (`flutter_lints`); keep analyzer warnings at zero.
@@ -26,10 +23,10 @@ This repository contains a Flutter client and a small Go backend.
 - Keep feature code grouped by domain (for example, adapter logic under `lib/services/api/`).
 
 ## Testing Guidelines
-- Flutter tests use `flutter_test`; backend uses Go’s built-in `testing` package.
-- Name tests with `*_test.dart` and `*_test.go`.
+- Flutter tests use `flutter_test`.
+- Name tests with `*_test.dart`.
 - Add or update tests for behavior changes in adapters, parsing, storage, and widgets.
-- Run both app and server tests before opening a PR when touching both modules.
+- Run Flutter analysis and tests before opening a PR.
 - No fixed coverage gate is enforced; prioritize meaningful assertions for changed paths.
 
 ## Commit & Pull Request Guidelines

@@ -49,9 +49,7 @@ import 'widgets/torrent_list_skeleton.dart';
 import 'widgets/torrent_cover_gallery_viewer.dart';
 import 'widgets/list_index_scroller.dart';
 import 'widgets/tag_filter_bar.dart';
-import 'services/update_service.dart';
 import 'services/aggregate_search_service.dart';
-import 'widgets/update_notification_dialog.dart';
 
 import 'package:pt_mate/utils/notification_helper.dart';
 
@@ -1908,11 +1906,6 @@ class _HomePageState extends State<HomePage> {
 
     if (!_isCurrentContentOperation(operationGeneration)) return;
 
-    // 检查应用更新（异步执行，不阻塞界面）
-    if (widget.searchExecutor == null) {
-      unawaited(_checkForUpdates());
-    }
-
     // 仅在站点支持种子搜索功能时执行默认搜索
     if (activeSite.features.supportTorrentSearch) {
       await _search(
@@ -1957,31 +1950,6 @@ class _HomePageState extends State<HomePage> {
       // 分类加载失败时显示错误信息
       if (mounted) {
         NotificationHelper.showError(context, '重新加载分类失败: $e');
-      }
-    }
-  }
-
-  /// 检查应用更新
-  Future<void> _checkForUpdates() async {
-    try {
-      final updateResult = await UpdateService.instance.checkForUpdates();
-
-      if (updateResult != null && updateResult.hasUpdate && mounted) {
-        final suppressed = await UpdateService.instance
-            .isAutoUpdateDialogSuppressed();
-        if (suppressed || !mounted) return;
-
-        // 延迟显示更新对话框，避免与其他初始化对话框冲突
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) {
-            UpdateNotificationDialog.show(context, updateResult);
-          }
-        });
-      }
-    } catch (e) {
-      // 更新检查失败时静默处理，不影响用户体验
-      if (kDebugMode) {
-        _logger.e('Update check failed: $e');
       }
     }
   }

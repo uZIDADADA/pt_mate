@@ -80,7 +80,7 @@ class StorageKeys {
   static String webdavPasswordFallback(String configId) =>
       'webdav.password.fallback.$configId';
 
-  // 设备ID（与历史 DeviceIdService 使用的 key 保持一致）
+  // 历史设备ID：仅保留存储兼容，客户端不再生成或上报
   static const String deviceId = 'device_id';
   // 非安全存储的降级 Key（例如 Linux 桌面端 keyring 被锁定时）
   static const String deviceIdFallback = 'device_id.fallback';

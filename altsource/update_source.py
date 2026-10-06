@@ -149,7 +149,7 @@ def build_source_data(
             break
 
     repo_url = config["repo_url"]
-    branch = os.environ.get("GITHUB_REF_NAME", "master")
+    branch = os.environ.get("GITHUB_REF_NAME", "dev")
     raw_base_url = f"https://raw.githubusercontent.com/{repo_url}/refs/heads/{branch}"
 
     apps = []
@@ -216,7 +216,7 @@ def build_source_data(
         "iconURL": f"{raw_base_url}/mt.png",
         "subtitle": config["subtitle"],
         "description": (
-            f"This is the official source for {config['app_name']}.\n\n"
+            f"Release source for {config['app_name']}.\n\n"
             "For full details, check the GitHub repository:\n"
             f"https://github.com/{repo_url}"
         ),

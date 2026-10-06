@@ -369,7 +369,7 @@ void main() {
   });
 
   test(
-    'BackupService 1.4 exports and restores device and WebDAV secrets',
+    'BackupService 1.4 preserves WebDAV secrets without exporting device IDs',
     () async {
       final storage = StorageService.instance;
       const current = WebDAVConfig(
@@ -396,7 +396,7 @@ void main() {
       final backup = await BackupService(storage).createBackup();
 
       expect(backup.version, '1.4.0');
-      expect(backup.data['deviceId'], 'device-migration-id');
+      expect(backup.data.containsKey('deviceId'), isFalse);
       expect(
         (backup.data['webdavConfig'] as Map<String, dynamic>)['id'],
         current.id,
@@ -414,9 +414,15 @@ void main() {
       secureStorage.clear();
       storage.resetForTest();
       WebDAVService.instance.resetForTest();
-      final restored = await BackupService(storage).restoreBackup(backup);
+      final legacyBackup = BackupData(
+        version: backup.version,
+        timestamp: backup.timestamp,
+        appVersion: backup.appVersion,
+        data: {...backup.data, 'deviceId': 'legacy-device-id'},
+      );
+      final restored = await BackupService(storage).restoreBackup(legacyBackup);
       expect(restored.success, isTrue);
-      expect(await storage.loadDeviceId(), 'device-migration-id');
+      expect(await storage.loadDeviceId(), isNull);
       expect(await storage.loadWebDAVPassword(current.id), 'current-password');
       expect(await storage.loadWebDAVPassword(history.id), 'history-password');
       final prefs = await SharedPreferences.getInstance();

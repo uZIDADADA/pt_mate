@@ -3,21 +3,17 @@ import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:pt_mate/utils/notification_helper.dart';
 
-import '../services/app_update_flow_controller.dart';
-import '../services/update_service.dart';
 import '../utils/url_launcher_helper.dart';
 import '../widgets/qb_speed_indicator.dart';
 import '../widgets/responsive_layout.dart';
-import '../widgets/update_notification_dialog.dart';
 
-const _repositoryUrl = 'https://github.com/JustLookAtNow/pt_mate';
+const _repositoryUrl = 'https://github.com/uZIDADADA/pt_mate';
 const _releasesUrl = '$_repositoryUrl/releases';
 const _issuesUrl = '$_repositoryUrl/issues';
-const _telegramUrl = 'https://t.me/pt_mate';
-const _userGuideUrl = '$_repositoryUrl/blob/master/docs/USER_GUIDE.md';
+const _userGuideUrl = '$_repositoryUrl/blob/dev/docs/USER_GUIDE.md';
 const _siteGuideUrl =
-    '$_repositoryUrl/blob/master/docs/SITE_CONFIGURATION_GUIDE.md';
-const _licenseUrl = '$_repositoryUrl/blob/master/LICENSE';
+    '$_repositoryUrl/blob/dev/docs/SITE_CONFIGURATION_GUIDE.md';
+const _licenseUrl = '$_repositoryUrl/blob/dev/LICENSE';
 
 class AboutPage extends StatefulWidget {
   const AboutPage({super.key});
@@ -33,8 +29,6 @@ class _AboutPageState extends State<AboutPage> {
   void initState() {
     super.initState();
     _loadPackageInfo();
-    // 进入关于页时自动检查一次更新（静默，无更新不提示）
-    _checkUpdateOnEnter();
   }
 
   Future<void> _loadPackageInfo() async {
@@ -58,7 +52,6 @@ class _AboutPageState extends State<AboutPage> {
       ),
       body: _AboutBody(
         version: _version.isEmpty ? '读取中...' : _version,
-        onCheckUpdate: _onCheckUpdatePressed,
         onOpenUrl: _openUrl,
         onCopyVersion: _copyVersionInfo,
       ),
@@ -77,59 +70,16 @@ class _AboutPageState extends State<AboutPage> {
     if (!mounted) return;
     NotificationHelper.showInfo(context, '版本信息已复制');
   }
-
-  Future<void> _checkUpdateOnEnter() async {
-    try {
-      final result = await UpdateService.instance.manualCheckForUpdates();
-      if (!mounted || result == null) return;
-      final suppressed = await UpdateService.instance
-          .isAutoUpdateDialogSuppressed();
-      if (!mounted) return;
-      if (result.hasUpdate && !suppressed) {
-        await UpdateNotificationDialog.show(context, result);
-      }
-    } catch (e) {
-      // 静默失败，不影响用户浏览关于页
-    }
-  }
-
-  Future<void> _onCheckUpdatePressed() async {
-    try {
-      final updateFlow = AppUpdateFlowController.instance;
-      final activeUpdateResult = updateFlow.currentUpdateResult;
-      if (updateFlow.state.isRunning && activeUpdateResult != null) {
-        await UpdateNotificationDialog.show(context, activeUpdateResult);
-        return;
-      }
-
-      final result = await UpdateService.instance.manualCheckForUpdates();
-      if (!mounted) return;
-      if (result == null) {
-        NotificationHelper.showError(context, '检查更新失败，请稍后重试');
-        return;
-      }
-      if (result.hasUpdate) {
-        await UpdateNotificationDialog.show(context, result);
-      } else {
-        NotificationHelper.showInfo(context, '当前已是最新版本');
-      }
-    } catch (e) {
-      if (!mounted) return;
-      NotificationHelper.showError(context, '检查更新时发生错误：$e');
-    }
-  }
 }
 
 class _AboutBody extends StatelessWidget {
   const _AboutBody({
     required this.version,
-    required this.onCheckUpdate,
     required this.onOpenUrl,
     required this.onCopyVersion,
   });
 
   final String version;
-  final VoidCallback onCheckUpdate;
   final ValueChanged<String> onOpenUrl;
   final VoidCallback onCopyVersion;
 
@@ -144,14 +94,10 @@ class _AboutBody extends StatelessWidget {
           children: [
             _BrandHeader(version: version),
             const SizedBox(height: 16),
-            _SectionTitle(
-              icon: Icons.system_update_alt_outlined,
-              title: '版本与更新',
-            ),
+            _SectionTitle(icon: Icons.system_update_alt_outlined, title: '版本'),
             const SizedBox(height: 8),
-            _UpdateCard(
+            _VersionCard(
               version: version,
-              onCheckUpdate: onCheckUpdate,
               onOpenReleases: () => onOpenUrl(_releasesUrl),
             ),
             const SizedBox(height: 16),
@@ -265,15 +211,10 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-class _UpdateCard extends StatelessWidget {
-  const _UpdateCard({
-    required this.version,
-    required this.onCheckUpdate,
-    required this.onOpenReleases,
-  });
+class _VersionCard extends StatelessWidget {
+  const _VersionCard({required this.version, required this.onOpenReleases});
 
   final String version;
-  final VoidCallback onCheckUpdate;
   final VoidCallback onOpenReleases;
 
   @override
@@ -281,108 +222,23 @@ class _UpdateCard extends StatelessWidget {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final useVerticalActions = constraints.maxWidth < 520;
-            final actions = [
-              FilledButton.icon(
-                onPressed: onCheckUpdate,
-                icon: const Icon(Icons.system_update),
-                label: const Text('检查更新'),
-              ),
-              OutlinedButton.icon(
-                onPressed: onOpenReleases,
-                icon: const Icon(Icons.open_in_new),
-                label: const Text('查看 Releases'),
-              ),
-            ];
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.new_releases_outlined),
-                  title: const Text('应用更新'),
-                  subtitle: Text('当前安装版本：$version'),
-                ),
-                const _BetaUpdateTile(),
-                const SizedBox(height: 8),
-                if (useVerticalActions)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      actions[0],
-                      const SizedBox(height: 8),
-                      actions[1],
-                    ],
-                  )
-                else
-                  Wrap(spacing: 12, runSpacing: 8, children: actions),
-              ],
-            );
-          },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.new_releases_outlined),
+              title: const Text('当前安装版本'),
+              subtitle: Text(version),
+            ),
+            OutlinedButton.icon(
+              onPressed: onOpenReleases,
+              icon: const Icon(Icons.open_in_new),
+              label: const Text('查看 Releases'),
+            ),
+          ],
         ),
       ),
-    );
-  }
-}
-
-class _BetaUpdateTile extends StatefulWidget {
-  const _BetaUpdateTile();
-
-  @override
-  State<_BetaUpdateTile> createState() => _BetaUpdateTileState();
-}
-
-class _BetaUpdateTileState extends State<_BetaUpdateTile> {
-  bool _enabled = false;
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final enabled = await UpdateService.instance.isBetaOptInEnabled();
-    if (!mounted) return;
-    setState(() {
-      _enabled = enabled;
-      _loading = false;
-    });
-  }
-
-  Future<void> _set(bool value) async {
-    setState(() {
-      _enabled = value;
-    });
-    await UpdateService.instance.setBetaOptIn(value);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return const ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: SizedBox(
-          height: 24,
-          width: 24,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
-        title: Text('尝鲜（接收 Beta 版本更新）'),
-        subtitle: Text('正在加载当前设置…'),
-      );
-    }
-
-    return SwitchListTile(
-      contentPadding: EdgeInsets.zero,
-      secondary: const Icon(Icons.new_releases),
-      title: const Text('尝鲜（接收 Beta 版本更新）'),
-      subtitle: const Text('默认仅接收稳定版本；开启后可接收 Beta/RC 等预发布版本更新'),
-      value: _enabled,
-      onChanged: _set,
     );
   }
 }
@@ -400,12 +256,6 @@ class _LinkGrid extends StatelessWidget {
         title: 'GitHub 仓库',
         subtitle: '查看源码与发布记录',
         url: _repositoryUrl,
-      ),
-      _LinkAction(
-        icon: Icons.forum_outlined,
-        title: 'Telegram 群',
-        subtitle: '加入官方交流群',
-        url: _telegramUrl,
       ),
       _LinkAction(
         icon: Icons.menu_book_outlined,
@@ -468,13 +318,6 @@ class _OpenSourceCard extends StatelessWidget {
             title: 'MIT License',
             subtitle: '查看开源许可证',
             onTap: () => onOpenUrl(_licenseUrl),
-          ),
-          const Divider(height: 1),
-          _PlainActionTile(
-            icon: Icons.person_outline,
-            title: 'JustLookAtNow',
-            subtitle: _repositoryUrl,
-            onTap: () => onOpenUrl(_repositoryUrl),
           ),
           const Divider(height: 1),
           _PlainActionTile(

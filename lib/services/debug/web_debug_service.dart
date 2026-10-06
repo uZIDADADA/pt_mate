@@ -226,8 +226,8 @@ class WebDebugService {
   <label>Cookie
     <input id="cookie" placeholder="uid=...; pass=..." />
   </label>
-  <label>详细配置（参考 assets/sites/ 下面的 <a href="https://github.com/JustLookAtNow/pt_mate/tree/master/assets/sites">json 文件</a>）
-    <p>另有配置说明一份，参考 <a href="https://github.com/JustLookAtNow/pt_mate/blob/master/SITE_CONFIGURATION_GUIDE.md">配置说明</a></p>
+  <label>详细配置（参考 assets/sites/ 下面的 <a href="https://github.com/uZIDADADA/pt_mate/tree/dev/assets/sites">json 文件</a>）
+    <p>另有配置说明一份，参考 <a href="https://github.com/uZIDADADA/pt_mate/blob/dev/docs/SITE_CONFIGURATION_GUIDE.md">配置说明</a></p>
     <textarea id="templateJson" rows="12" placeholder="{\n  ...\n}"></textarea>
   </label>
   <button id="testBtn">测试</button>

@@ -2,12 +2,9 @@ package com.github.justlookatnow.ptmate
 
 import android.content.ContentValues
 import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
-import android.provider.Settings
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import io.flutter.embedding.android.FlutterActivity
@@ -37,27 +34,6 @@ class MainActivity : FlutterActivity() {
         // applicationId can never satisfy this guard.
         secureStorageTestBootstrapFailureCode = bootstrapSecureStorageTestProfileIfNeeded()
         super.configureFlutterEngine(flutterEngine)
-
-        MethodChannel(
-            flutterEngine.dartExecutor.binaryMessenger,
-            CHANNEL,
-        ).setMethodCallHandler { call, result ->
-            when (call.method) {
-                "isInstallPermissionGranted" -> {
-                    result.success(canInstallPackages())
-                }
-
-                "openInstallPermissionSettings" -> {
-                    result.success(openInstallPermissionSettings())
-                }
-
-                "clearDownloadedApks" -> {
-                    result.success(clearDownloadedApks())
-                }
-
-                else -> result.notImplemented()
-            }
-        }
 
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
@@ -164,53 +140,6 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
-    }
-
-    private fun canInstallPackages(): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            packageManager.canRequestPackageInstalls()
-        } else {
-            true
-        }
-    }
-
-    private fun openInstallPermissionSettings(): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-            return true
-        }
-
-        return try {
-            val intent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
-                data = Uri.parse("package:$packageName")
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            startActivity(intent)
-            true
-        } catch (_: Exception) {
-            false
-        }
-    }
-
-    private fun clearDownloadedApks(): Int {
-        val otaDir = File(applicationInfo.dataDir, "files/ota_update")
-        if (!otaDir.exists()) {
-            return 0
-        }
-        return deleteChildrenRecursively(otaDir)
-    }
-
-    private fun deleteChildrenRecursively(directory: File): Int {
-        var deletedCount = 0
-        val children = directory.listFiles() ?: return 0
-        for (child in children) {
-            deletedCount += if (child.isDirectory) {
-                val nestedCount = deleteChildrenRecursively(child)
-                if (child.delete()) nestedCount + 1 else nestedCount
-            } else {
-                if (child.delete()) 1 else 0
-            }
-        }
-        return deletedCount
     }
 
     private fun saveToDownloads(fileName: String, bytes: ByteArray, mimeType: String): String {
@@ -1028,7 +957,6 @@ class MainActivity : FlutterActivity() {
     }
 
     private companion object {
-        const val CHANNEL = "pt_mate/android_install_permission"
         const val LOCAL_DOWNLOADS_CHANNEL = "pt_mate/local_downloads"
         const val SECURE_STORAGE_PROFILE_CHANNEL = "pt_mate/secure_storage_profile"
         const val ANDROID_KEYSTORE_PROVIDER = "AndroidKeyStore"

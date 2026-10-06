@@ -4,7 +4,7 @@
 
 A Flutter-based private tracker client built with Material Design 3. PT Mate supports torrent browsing, search, and download management across multiple PT site types.
 
-📣 Official Telegram group: [Join the PT Mate community](https://t.me/pt_mate)
+This fork removes community promotion, automatic update checks, device telemetry and the statistics backend. Releases are accessed manually from this repository. See [fork notes](docs/FORK_NOTES.md).
 
 ## Features
 
@@ -91,17 +91,6 @@ This repository uses a versioned Git hook in `.githooks/pre-commit` to run `dart
 git config core.hooksPath .githooks
 ```
 
-## iOS Sideloading Source
-
-SideStore:
-[Add PT Mate Source](https://intradeus.github.io/http-protocol-redirector?r=sidestore://source?url=https://raw.githubusercontent.com/JustLookAtNow/pt_mate/refs/heads/master/altsource/AltSource.json)
-
-Direct source URL:
-
-```text
-https://raw.githubusercontent.com/JustLookAtNow/pt_mate/refs/heads/master/altsource/AltSource.json
-```
-
 ## Documentation
 
 - [Documentation Index](./docs/README.md)
@@ -113,13 +102,3 @@ https://raw.githubusercontent.com/JustLookAtNow/pt_mate/refs/heads/master/altsou
 ## License
 
 MIT License. See [LICENSE](./LICENSE) for details.
-
-## Star History
-
-<a href="https://www.star-history.com/?type=date&repos=JustLookAtNow%2Fpt_mate">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=JustLookAtNow/pt_mate&type=date&theme=dark&legend=top-left&sealed_token=oGvG8BxnJBegGpMRqHZKqPu0DzdgRr5709NsgF0ER046oY-wdqreskuzY127FJ8__EV4uie-0HSe9Gin94iVJ7WRPeDeJqCZvKern3qqu-IfcU_XqWSFlUVUEforyPudF31lxWZSxsZGxl7njZF8rd9DCkO_5oDBiVNAgz7rjyYXXcYrUJ99HlemM2kF" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=JustLookAtNow/pt_mate&type=date&legend=top-left&sealed_token=oGvG8BxnJBegGpMRqHZKqPu0DzdgRr5709NsgF0ER046oY-wdqreskuzY127FJ8__EV4uie-0HSe9Gin94iVJ7WRPeDeJqCZvKern3qqu-IfcU_XqWSFlUVUEforyPudF31lxWZSxsZGxl7njZF8rd9DCkO_5oDBiVNAgz7rjyYXXcYrUJ99HlemM2kF" />
-    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=JustLookAtNow/pt_mate&type=date&legend=top-left&sealed_token=oGvG8BxnJBegGpMRqHZKqPu0DzdgRr5709NsgF0ER046oY-wdqreskuzY127FJ8__EV4uie-0HSe9Gin94iVJ7WRPeDeJqCZvKern3qqu-IfcU_XqWSFlUVUEforyPudF31lxWZSxsZGxl7njZF8rd9DCkO_5oDBiVNAgz7rjyYXXcYrUJ99HlemM2kF" />
-  </picture>
-</a>

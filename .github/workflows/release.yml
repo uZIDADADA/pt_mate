@@ -694,224 +694,16 @@ jobs:
           ios-macos-artifacts/build/macos/Build/Products/Release/pt_mate-${{ steps.version.outputs.version }}-macos-x64.app.zip
         fail_on_unmatched_files: true
         
-    - name: Send Telegram notification
-      continue-on-error: true
-      env:
-        TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
-        TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-        COMMIT_MSG: ${{ steps.commit_message.outputs.message }}
-        VERSION: ${{ steps.version.outputs.tag }}
-        VERSION_NUMBER: ${{ steps.version.outputs.version }}
-        REPO: ${{ github.repository }}
-      run: |
-        set -euo pipefail
-
-        if [ -z "${TG_BOT_TOKEN:-}" ] || [ -z "${TG_CHAT_ID:-}" ]; then
-          echo "TG_BOT_TOKEN or TG_CHAT_ID is not set. Skipping Telegram notification."
-          exit 0
-        fi
-
-        npm install telegramify-markdown
-
-        ATTACHMENT_MANIFEST=/tmp/tg_attachments.tsv
-        : > "$ATTACHMENT_MANIFEST"
-
-        while IFS='|' read -r label path; do
-          if [ ! -f "$path" ]; then
-            echo "Skipping missing Telegram attachment: $path"
-            continue
-          fi
-
-          printf '%s\n' "$label" >> "$ATTACHMENT_MANIFEST"
-        done <<EOF
-        Android APK|android-artifacts/pt_mate-${VERSION_NUMBER}-arm64-v8a.apk
-        Windows x64|windows-artifact/pt_mate-${VERSION_NUMBER}-windows-x64.exe
-        Linux x64|linux-artifact/pt_mate-${VERSION_NUMBER}-linux-x64.AppImage
-        iOS Unsigned IPA|ios-macos-artifacts/ios/build/pt_mate-${VERSION_NUMBER}-unsigned.ipa
-        macOS DMG|ios-macos-artifacts/build/macos/Build/Products/Release/pt_mate-${VERSION_NUMBER}-macos-x64.dmg
-        macOS App Zip|ios-macos-artifacts/build/macos/Build/Products/Release/pt_mate-${VERSION_NUMBER}-macos-x64.app.zip
-        Xcode Archive|ios-macos-artifacts/ios/build/pt_mate-${VERSION_NUMBER}.xcarchive.zip
-        EOF
-
-        export TG_RELEASE_ASSET_LINES
-        TG_RELEASE_ASSET_LINES=$(awk '{print "- " $0}' "$ATTACHMENT_MANIFEST" || true)
-
-        node <<'EOF'
-        const https = require('https');
-
-        (async () => {
-          const module = await import('telegramify-markdown');
-          const telegramify = module.default || module;
-
-          const commitMsg = process.env.COMMIT_MSG;
-          const version = process.env.VERSION;
-          const repo = process.env.REPO;
-          const releaseUrl = `https://github.com/${repo}/releases/tag/${version}`;
-          const releaseAssetLines = process.env.TG_RELEASE_ASSET_LINES || '';
-
-          const sections = [
-            `# 🎉 PT Mate ${version} 发布了！`,
-            commitMsg,
-          ];
-
-          if (releaseAssetLines) {
-            sections.push(`📦 可下载安装包\n${releaseAssetLines}\n请前往 GitHub Release 下载`);
-          }
-
-          sections.push(`📱 [GitHub Release](${releaseUrl})`);
-
-          const fullMarkdown = sections.filter(Boolean).join('\n\n');
-          const escapedMessage = telegramify(fullMarkdown);
-
-          console.log('Processed Message:', escapedMessage);
-
-          const payload = {
-            chat_id: process.env.TG_CHAT_ID,
-            text: escapedMessage,
-            parse_mode: 'MarkdownV2',
-            disable_web_page_preview: false,
-          };
-
-          const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-          function sendRequest(method, endpoint, data) {
-            return new Promise((resolve, reject) => {
-              const url = `https://api.telegram.org/bot${process.env.TG_BOT_TOKEN}/${endpoint}`;
-              const req = https.request(
-                url,
-                {
-                  method,
-                  headers: { 'Content-Type': 'application/json' },
-                  timeout: 15000,
-                },
-                (res) => {
-                  let body = '';
-                  res.on('data', (chunk) => (body += chunk));
-                  res.on('end', () => {
-                    try {
-                      resolve(JSON.parse(body));
-                    } catch (error) {
-                      reject(error);
-                    }
-                  });
-                },
-              );
-
-              req.on('timeout', () => {
-                req.destroy();
-                reject(new Error('Request timed out after 15 seconds'));
-              });
-              req.on('error', reject);
-
-              if (data) {
-                req.write(JSON.stringify(data));
-              }
-
-              req.end();
-            });
-          }
-
-          async function sendWithRetry(method, endpoint, data, maxRetries = 3) {
-            for (let index = 0; index < maxRetries; index += 1) {
-              try {
-                const response = await sendRequest(method, endpoint, data);
-                if (response.ok) {
-                  return response;
-                }
-                console.error(`Telegram API error (Attempt ${index + 1}):`, JSON.stringify(response));
-              } catch (error) {
-                console.error(`Network error (Attempt ${index + 1}):`, error.message);
-              }
-
-              if (index < maxRetries - 1) {
-                const waitTime = 2000 * (index + 1);
-                console.log(`Retrying in ${waitTime}ms...`);
-                await delay(waitTime);
-              }
-            }
-
-            throw new Error(`Failed after ${maxRetries} attempts`);
-          }
-
-          try {
-            console.log('Sending message...');
-            const sendRes = await sendWithRetry('POST', 'sendMessage', payload);
-            const messageId = sendRes.result.message_id;
-
-            console.log('Message sent successfully with ID:', messageId);
-
-            await sendWithRetry('POST', 'unpinAllChatMessages', { chat_id: process.env.TG_CHAT_ID });
-            await sendWithRetry('POST', 'pinChatMessage', {
-              chat_id: process.env.TG_CHAT_ID,
-              message_id: messageId,
-              disable_notification: false,
-            });
-
-            console.log('Message pinned successfully');
-          } catch (error) {
-            console.error('Final Error:', error.message);
-            process.exit(1);
-          }
-        })();
-        EOF
-
-    - name: Notify Update Server (POST /api/v1/github/version-update)
-      env:
-        UPDATE_SERVER_URL: ${{ vars.UPDATE_SERVER_URL }}
-        GITHUB_WEBHOOK_SECRET: ${{ secrets.UPDATE_WEBHOOK_SECRET }}
-        VERSION_TAG: ${{ steps.version.outputs.tag }}
-        VERSION: ${{ steps.version.outputs.version }}
-        RELEASE_NOTES: ${{ steps.commit_message.outputs.message }}
-      run: |
-        set -euo pipefail
-
-        if [ -z "${UPDATE_SERVER_URL:-}" ]; then
-          echo "UPDATE_SERVER_URL is not set. Skipping update server notification."
-          exit 0
-        fi
-
-        DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/tag/${VERSION_TAG}"
-        ANDROID_DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${VERSION_TAG}/pt_mate-${VERSION}-arm64-v8a.apk"
-        
-        # Build JSON payload safely
-        JSON_PAYLOAD=$(jq -n \
-          --arg version "$VERSION" \
-          --arg release_notes "$RELEASE_NOTES" \
-          --arg download_url "$DOWNLOAD_URL" \
-          --arg android_download_url "$ANDROID_DOWNLOAD_URL" \
-          '{
-            version: $version,
-            release_notes: $release_notes,
-            download_url: $download_url,
-            android_download_url: $android_download_url
-          }')
-
-        echo "Sending version update to $UPDATE_SERVER_URL/api/v1/github/version-update"
-        echo "$JSON_PAYLOAD" | curl -sS -X POST "$UPDATE_SERVER_URL/api/v1/github/version-update" \
-          -H "Content-Type: application/json" \
-          -H "X-Webhook-Secret: ${GITHUB_WEBHOOK_SECRET}" \
-          -d @- | tee /tmp/update_server_response.json
-
-        HTTP_OK=$(jq -r '.message? // empty' /tmp/update_server_response.json || true)
-        if [ -z "$HTTP_OK" ]; then
-          echo "😒 Update server did not return success message. Response:" >&2
-          cat /tmp/update_server_response.json >&2
-          exit 1
-        else
-          echo "✅ Update server acknowledged: $HTTP_OK"
-        fi
-
   update-altsource:
     runs-on: ubuntu-latest
     needs: create-release
     if: success()
     steps:
-      - name: Checkout master
+      - name: Checkout dev
         uses: actions/checkout@v6
         with:
-          ref: master
+          ref: dev
           fetch-depth: 0
-          ssh-key: ${{ secrets.ALTSOURCE_DEPLOY_KEY }}
 
       - name: Setup Python
         uses: actions/setup-python@v6
@@ -921,7 +713,7 @@ jobs:
       - name: Update AltSource metadata
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REF_NAME: master
+          GITHUB_REF_NAME: dev
         run: python altsource/update_source.py
 
       - name: Commit and push changes
@@ -933,5 +725,5 @@ jobs:
             echo "No changes detected, skipping commit."
           else
             git commit -m "chore: update AltSource for ${{ github.ref_name }}"
-            git push origin master
+            git push origin dev
           fi
